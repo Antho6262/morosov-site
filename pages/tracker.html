@@ -32,7 +32,6 @@
 
     <div class="tabs">
       <button data-tab="actions" class="active">💵 Action</button>
-      <button data-tab="gofast">🏠 Cambriolage</button>
       <button data-tab="vente">🌿 Récolte</button>
       <button data-tab="labo">🧪 Labo</button>
       <button data-tab="fleeca">🏦 Fleeca</button>
@@ -69,32 +68,6 @@
       </div>
     </div>
 
-    <!-- CAMBRIOLAGE -->
-    <div class="tabpanel" id="panel-gofast">
-      <div class="card">
-        <h3>Nouveau cambriolage</h3>
-        <form class="entry" id="form-gofast">
-          <div class="field"><label>Membre</label><select id="g-member" required></select></div>
-          <div class="field"><label>Nombre de cambriolages</label><input type="number" id="g-count" min="1" step="1" value="1" required></div>
-          <div class="field"><label>Montant total gagné ($)</label><input type="number" id="g-montant" min="0" step="1" required></div>
-          <div class="field"><label>Résultat</label>
-            <select id="g-resultat"><option value="Réussite">✅ Réussite</option><option value="Échec">❌ Échec</option></select>
-          </div>
-          <div class="field" id="g-raison-wrap" style="display:none;"><label>Raison de l'échec</label><input type="text" id="g-raison" placeholder="optionnel"></div>
-          <div class="field"><label>Note</label><input type="text" id="g-note" placeholder="optionnel"></div>
-          <button class="submit" type="submit">Ajouter</button>
-        </form>
-        <div class="note-hint" id="g-rate-hint"></div>
-      </div>
-      <div class="card">
-        <h3>Historique</h3>
-        <table><thead><tr><th>Membre</th><th>Cambriolages</th><th>Montant total</th><th>Résultat</th><th>Part membre</th><th>Note</th><th>Date</th><th></th></tr></thead><tbody id="g-table"></tbody></table>
-        <div class="totals" id="g-totals"></div>
-        <div class="grand" id="g-grand"></div>
-      </div>
-    </div>
-
-    <!-- VENTE -->
     <div class="tabpanel" id="panel-vente">
       <div class="card">
         <h3>Nouvelle récolte</h3>
@@ -342,7 +315,7 @@
     }
 
     function rafraichirTout() {
-      renderActions(); renderGofast(); renderVente(); renderLabo();
+      renderActions(); renderVente(); renderLabo();
       Object.values(braquageRenders).forEach(fn => fn());
     }
 
@@ -361,7 +334,7 @@
       if (b) b.click();
     })();
 
-    ['a', 'g', 'v', 'l', 'fl', 'ar', 'bi', 'pa', 'hl'].forEach(prefix => {
+    ['a', 'v', 'l', 'fl', 'ar', 'bi', 'pa', 'hl'].forEach(prefix => {
       document.getElementById(prefix + '-resultat').addEventListener('change', e => {
         document.getElementById(prefix + '-raison-wrap').style.display = e.target.value === 'Échec' ? 'block' : 'none';
       });
@@ -375,7 +348,7 @@
       const opts = listePourSelect
         .map(([id, m]) => `<option value="${id}">${gradeInfo(m.grade).emoji} ${m.prenom}</option>`)
         .join('') || '<option value="">Aucun membre — ajoute-le dans Admin</option>';
-      ['a-member', 'g-member', 'v-member', 'l-member'].forEach(sid => {
+      ['a-member', 'v-member', 'l-member'].forEach(sid => {
         const sel = document.getElementById(sid);
         const cur = sel.value;
         sel.innerHTML = opts;
@@ -404,7 +377,6 @@
 
     function renderHints() {
       document.getElementById('a-rate-hint').textContent = `Taux actuel : ${config.taux_action_pct}% du montant total reversé au membre. Le type "ATM" retire automatiquement 1 unité du produit "ATM" dans le Stock (même en cas d'échec), si le produit existe.`;
-      document.getElementById('g-rate-hint').textContent = `Taux actuel : ${fmtMoney(config.taux_cambriolage)} par cambriolage (tarif fixe). Consomme 1 outil de crochetage par cambriolage (même en cas d'échec).`;
       document.getElementById('v-rate-hint').textContent = `Les récoltes sont ajoutées au stock du produit correspondant (si il existe). Quota : 5 000 récoltes par semaine, tous produits confondus.`;
       document.getElementById('l-rate-hint').textContent = `1 labo = 150 de chaque matière → 150 pochons. 1 labo maximum par heure. Les matières sont retirées du stock.`;
     }
@@ -507,78 +479,6 @@
         }
       } catch (err) {
         console.error('deduireStockNomme', err); // jamais bloquant
-      }
-    }
-
-    // ---- CAMBRIOLAGE ----
-    function renderGofast() {
-      if (!lastGofastSnap) return;
-      const rows = entries(lastGofastSnap.val()).filter(([, item]) => (!semaineFiltre || item.semaine_id === semaineFiltre) && (!membreFiltre || item.membre_id === membreFiltre));
-      const tbody = document.getElementById('g-table');
-      const totals = {}; let grand = 0;
-      if (rows.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="empty">Aucun cambriolage enregistré.</td></tr>`;
-      } else {
-        tbody.innerHTML = rows.slice().reverse().map(([id, gf]) => {
-          const m = membres[gf.membre_id];
-          const reussite = gf.resultat !== 'Échec';
-          const part = reussite ? (gf.count || 0) * config.taux_cambriolage : 0;
-          totals[gf.membre_id] = (totals[gf.membre_id] || 0) + (gf.montant || 0);
-          grand += (gf.montant || 0);
-          const g = m ? gradeInfo(m.grade) : null;
-          return `<tr>
-            <td>${g ? g.emoji : '❓'} ${m ? m.prenom : 'Membre supprimé'}</td>
-            <td>🏠 ${gf.count}</td>
-            <td>${fmtMoney(gf.montant)}</td>
-            <td>${reussite ? '✅ Réussite' : `❌ Échec${gf.raison ? ' — ' + gf.raison : ''}`}</td>
-            <td class="amt">${fmtMoney(part)}</td>
-            <td>${gf.note || '—'}</td>
-            <td>${fmtDateHeure(gf.date)}</td>
-            <td><button class="del" data-id="${id}" data-type="cambriolages">✕</button></td>
-          </tr>`;
-        }).join('');
-      }
-      renderTotalsChips('g-totals', totals);
-      document.getElementById('g-grand').textContent = 'Total réel gagné (groupe) : ' + fmtMoney(grand);
-    }
-    db.ref('cambriolages').on('value', snap => { lastGofastSnap = snap; renderGofast(); });
-
-    document.getElementById('form-gofast').addEventListener('submit', e => {
-      e.preventDefault();
-      const membre_id = document.getElementById('g-member').value;
-      const count = parseInt(document.getElementById('g-count').value, 10);
-      const montant = parseFloat(document.getElementById('g-montant').value);
-      const resultat = document.getElementById('g-resultat').value;
-      const raison = document.getElementById('g-raison').value.trim();
-      const note = document.getElementById('g-note').value.trim();
-      if (!membre_id || isNaN(count) || count < 1 || isNaN(montant)) return;
-      db.ref('cambriolages/' + uid()).set({ membre_id, count, montant, resultat, raison, note, date: new Date().toISOString(), par: membre.id, semaine_id: activeWeekId });
-      deduireOutilCrochetage(count);
-      document.getElementById('g-count').value = '1';
-      document.getElementById('g-montant').value = '';
-      document.getElementById('g-note').value = '';
-      document.getElementById('g-raison').value = '';
-      document.getElementById('g-raison-wrap').style.display = 'none';
-      document.getElementById('g-resultat').value = 'Réussite';
-    });
-
-    // Retire "count" outils de crochetage du stock (catégorie "Matériel"), sans jamais bloquer l'enregistrement
-    async function deduireOutilCrochetage(count) {
-      try {
-        const stockSnap = await db.ref('stock').get();
-        const cats = entries(stockSnap.val());
-        const catMateriel = cats.find(([id, c]) => (c.nom || '').toLowerCase().includes('mat'));
-        if (!catMateriel) return;
-        const [catId, cat] = catMateriel;
-        const produits = entries(cat.produits);
-        const prod = produits.find(([pid, p]) => (p.nom || '').toLowerCase().includes('crochet'));
-        if (!prod) return;
-        const [pid] = prod;
-        const ref = db.ref(`stock/${catId}/produits/${pid}/stock`);
-        const cur = (await ref.get()).val() || 0;
-        await ref.set(Math.max(0, cur - count));
-      } catch (err) {
-        console.error('deduireOutilCrochetage', err); // jamais bloquant
       }
     }
 
@@ -802,7 +702,6 @@
       membres = Object.fromEntries(entries(snap.val()));
       fillMemberSelects();
       renderActions();
-      renderGofast();
       renderVente();
       renderLabo();
       Object.values(braquageRenders).forEach(fn => fn());
