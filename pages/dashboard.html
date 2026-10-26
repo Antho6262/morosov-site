@@ -93,7 +93,7 @@
 
     function renderTout() {
       if (!dernieresListes) return;
-      const { membres, cfg, actions, gofasts, ventes, labos, fleecas, armureries, bijouteries, pacifics, humanlabs } = dernieresListes;
+      const { transactions, membres, cfg, actions, gofasts, ventes, labos, fleecas, armureries, bijouteries, pacifics, humanlabs } = dernieresListes;
       const matchWeek = item => !semaineFiltre || item.semaine_id === semaineFiltre;
 
       const actionsF = actions.filter(([,a]) => matchWeek(a));
@@ -134,7 +134,7 @@
 
       document.getElementById('cat-cards').innerHTML = `
         <div class="stat"><div class="v">${fmtMoney(totalActions)}</div><div class="l">💵 Actions</div></div>
-        <div class="stat"><div class="v">${fmtMoney(totalGofast)}</div><div class="l">🏠 Cambriolage</div></div>
+        <div class="stat"><div class="v">${transactions.filter(([,t]) => matchWeek(t)).length}</div><div class="l">🧾 Transactions</div></div>
         <div class="stat"><div class="v">${totalVente}</div><div class="l">🌿 Récoltes</div></div>
         <div class="stat"><div class="v">${totalLabo}</div><div class="l">🧪 Labo</div></div>
         <div class="stat"><div class="v">${fmtMoney(totalFleeca)}</div><div class="l">🏦 Fleeca</div></div>
@@ -207,8 +207,9 @@
       db.ref('bijouteries').get(),
       db.ref('pacifics').get(),
       db.ref('humanlabs').get(),
-      db.ref('config').get()
-    ]).then(([mSnap, aSnap, gSnap, vSnap, lSnap, flSnap, arSnap, biSnap, paSnap, hlSnap, cSnap]) => {
+      db.ref('config').get(),
+      db.ref('transactions').get()
+    ]).then(([mSnap, aSnap, gSnap, vSnap, lSnap, flSnap, arSnap, biSnap, paSnap, hlSnap, cSnap, tSnap]) => {
       const membres = Object.fromEntries(entries(mSnap.val()));
       const cfg = Object.assign({ taux_action_pct: 25, taux_cambriolage: 700, taux_pochon: 25, taux_branche: 10 }, cSnap.val() || {});
       const actions = entries(aSnap.val()).filter(([,a]) => a.resultat !== 'Échec');
@@ -221,7 +222,7 @@
       const pacifics = entries(paSnap.val()).filter(([,r]) => r.resultat !== 'Échec');
       const humanlabs = entries(hlSnap.val()).filter(([,r]) => r.resultat !== 'Échec');
 
-      dernieresListes = { membres, cfg, actions, gofasts, ventes, labos, fleecas, armureries, bijouteries, pacifics, humanlabs };
+      dernieresListes = { transactions: entries(tSnap.val()), membres, cfg, actions, gofasts, ventes, labos, fleecas, armureries, bijouteries, pacifics, humanlabs };
       chargerSemaines().then(renderTout);
 
     });
