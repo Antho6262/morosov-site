@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Morosov — Admin</title>
+<link rel="icon" href="../img/favicon.png">
 <link rel="stylesheet" href="../css/style.css">
 </head>
 <body>
@@ -51,6 +52,7 @@
           <div class="field"><label>% par action (montant ramené)</label><input type="number" id="cfg-percent" min="0" max="100" step="1"></div>
           <div class="field"><label>$ par labo lancé</label><input type="number" id="cfg-labo" min="0" step="1"></div>
           <div class="field"><label>$ par unité récoltée</label><input type="number" id="cfg-recolte" min="0" step="1"></div>
+          <div class="field"><label>$ par pochon vendu</label><input type="number" id="cfg-pochon" min="0" step="1"></div>
           <div class="field"><label>% frais de blanchiment</label><input type="number" id="cfg-blanchiment" min="0" max="100" step="1"></div>
         </div>
         <div class="note-hint">À 0 = aucune part versée au membre sur cette ligne. À renseigner dès que le lead a donné les montants de paye de fin de semaine. Le montant des actions reste entièrement au groupe, il sert aussi à la cotisation.</div>
@@ -287,12 +289,13 @@
       document.getElementById('cfg-percent').value = cfg.taux_action_pct;
       document.getElementById('cfg-labo').value = cfg.taux_labo;
       document.getElementById('cfg-recolte').value = cfg.taux_recolte;
+      document.getElementById('cfg-pochon').value = cfg.taux_pochon;
       document.getElementById('cfg-blanchiment').value = cfg.blanchiment_taux;
     });
 
     document.getElementById('cfg-save').addEventListener('click', () => {
       const lire = id => parseFloat(document.getElementById(id).value);
-      const champs = { taux_action_pct: lire('cfg-percent'), taux_labo: lire('cfg-labo'), taux_recolte: lire('cfg-recolte'), blanchiment_taux: lire('cfg-blanchiment') };
+      const champs = { taux_action_pct: lire('cfg-percent'), taux_labo: lire('cfg-labo'), taux_recolte: lire('cfg-recolte'), taux_pochon: lire('cfg-pochon'), blanchiment_taux: lire('cfg-blanchiment') };
       const update = {};
       Object.entries(champs).forEach(([k, v]) => { if (!isNaN(v)) update[k] = v; });
       db.ref('config').update(update);

@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Morosov — Dashboard</title>
+<link rel="icon" href="../img/favicon.png">
 <link rel="stylesheet" href="../css/style.css">
 </head>
 <body>
@@ -14,6 +15,7 @@
       <h2 id="pagehead-title">Dashboard</h2>
       <div class="rule"></div>
     </div>
+    <div class="hero"><img src="../img/banner.jpg" alt="Morosov"></div>
     <div style="text-align:right;margin-bottom:-6px;"><a class="ghost" href="tv.html" style="display:inline-block;">📺 Mode TV</a></div>
     <div class="note-hint" style="margin-bottom:16px;">🗓️ Fin de semaine le dimanche à 19h : cotisation à rendre et payes versées par la hiérarchie (Fondateur, Organisation, Lead, Co Lead) — argent sale uniquement.</div>
 
@@ -106,12 +108,13 @@
 
     function renderTout() {
       if (!dernieresListes) return;
-      const { membres, cfg, actions, labos, recoltes, bijouteries, fleecas, armureries } = dernieresListes;
+      const { membres, cfg, actions, labos, recoltes, ventes, bijouteries, fleecas, armureries } = dernieresListes;
       const q = cfg.quotas;
       const matchWeek = item => !semaineFiltre || item.semaine_id === semaineFiltre;
       const actionsF = actions.filter(([, a]) => matchWeek(a));
       const labosF = labos.filter(([, l]) => matchWeek(l));
       const recoltesF = recoltes.filter(([, r]) => matchWeek(r));
+      const ventesF = ventes.filter(([, v]) => matchWeek(v));
       const biF = bijouteries.filter(([, r]) => matchWeek(r));
       const flF = fleecas.filter(([, r]) => matchWeek(r));
       const arF = armureries.filter(([, r]) => matchWeek(r));
@@ -127,11 +130,13 @@
       actionsF.forEach(([, a]) => ajoute(a.membre_id, partMembre(cfg, 'actions', a)));
       labosF.forEach(([, l]) => ajoute(l.membre_id, partMembre(cfg, 'labos', l)));
       recoltesF.forEach(([, r]) => ajoute(r.membre_id, partMembre(cfg, 'recoltes', r)));
+      ventesF.forEach(([, v]) => ajoute(v.membre_id, partMembre(cfg, 'ventes', v)));
 
       document.getElementById('cat-cards').innerHTML = `
         <div class="stat"><div class="v">${fmtMoney(totalActions)}</div><div class="l">💵 Actions</div></div>
         <div class="stat"><div class="v">${totalLabos}</div><div class="l">🧪 Labos · ${totalPochons.toLocaleString('fr-FR')} pochons</div></div>
         <div class="stat"><div class="v">${totalRecoltes.toLocaleString('fr-FR')}</div><div class="l">🌿 Récoltes</div></div>
+        <div class="stat"><div class="v">${fmtMoney(somme(ventesF))}</div><div class="l">💊 Ventes · ${ventesF.reduce((s, [, v]) => s + (v.qty || 0), 0).toLocaleString('fr-FR')} pochons</div></div>
         <div class="stat"><div class="v">${fmtMoney(somme(biF))}</div><div class="l">💎 Bijouterie</div></div>
         <div class="stat"><div class="v">${fmtMoney(somme(flF))}</div><div class="l">🏦 Banque</div></div>
         <div class="stat"><div class="v">${fmtMoney(somme(arF))}</div><div class="l">🔫 Armurerie</div></div>
@@ -187,20 +192,21 @@
     }
 
     Promise.all([
-      db.ref('membres').get(), db.ref('actions').get(), db.ref('labos').get(), db.ref('recoltes').get(),
+      db.ref('membres').get(), db.ref('actions').get(), db.ref('labos').get(), db.ref('recoltes').get(), db.ref('ventes').get(),
       db.ref('bijouteries').get(), db.ref('fleecas').get(), db.ref('armureries').get(), db.ref('config').get()
-    ]).then(([mSnap, aSnap, lSnap, rSnap, biSnap, flSnap, arSnap, cSnap]) => {
+    ]).then(([mSnap, aSnap, lSnap, rSnap, vSnap, biSnap, flSnap, arSnap, cSnap]) => {
       const ok = ([, i]) => i.resultat !== 'Échec';
       const membres = Object.fromEntries(entries(mSnap.val()));
       const cfg = getConfig(cSnap.val());
       const actions = entries(aSnap.val()).filter(ok);
       const labos = entries(lSnap.val()).filter(ok);
       const recoltes = entries(rSnap.val());
+      const ventes = entries(vSnap.val()).filter(ok);
       const bijouteries = entries(biSnap.val()).filter(ok);
       const fleecas = entries(flSnap.val()).filter(ok);
       const armureries = entries(arSnap.val()).filter(ok);
 
-      dernieresListes = { membres, cfg, actions, labos, recoltes, bijouteries, fleecas, armureries };
+      dernieresListes = { membres, cfg, actions, labos, recoltes, ventes, bijouteries, fleecas, armureries };
       chargerSemaines().then(renderTout);
 
       // Membre du jour (surprise cosmétique)
@@ -211,7 +217,7 @@
         const g = gradeInfo(m.grade);
         document.getElementById('capitaine-card').style.display = 'block';
         document.getElementById('capitaine-card').innerHTML =
-          `<div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:3px;color:var(--muted);">МОРОЗОВ · MEMBRE DU JOUR</div>
+          `<div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:3px;color:var(--muted);">MOROSOV · MEMBRE DU JOUR</div>
            <div style="font-family:'Russo One',sans-serif;font-size:28px;color:#fff;margin-top:4px;text-shadow:0 0 14px var(--glow);">${g.emoji} ${m.prenom}</div>`;
       }
 
@@ -219,6 +225,7 @@
       const total =
         actions.reduce((s, [, a]) => s + (a.montant || 0), 0) +
         labos.reduce((s, [, l]) => s + (l.montant || 0), 0) +
+        ventes.reduce((s, [, v]) => s + (v.montant || 0), 0) +
         [bijouteries, fleecas, armureries].reduce((s, l) => s + l.reduce((t, [, r]) => t + (r.montant || 0), 0), 0);
       renderCarteTresor(total);
     });

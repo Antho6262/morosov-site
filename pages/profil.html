@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Morosov — Profil</title>
+<link rel="icon" href="../img/favicon.png">
 <link rel="stylesheet" href="../css/style.css">
 </head>
 <body>
@@ -38,20 +39,23 @@
       db.ref('actions').get(),
       db.ref('labos').get(),
       db.ref('recoltes').get(),
+      db.ref('ventes').get(),
       db.ref('config').get()
-    ]).then(([aSnap, lSnap, rSnap, cSnap]) => {
+    ]).then(([aSnap, lSnap, rSnap, vSnap, cSnap]) => {
       const cfg = getConfig(cSnap.val());
       const mine = x => x.membre_id === membre.id;
 
       const totalActions = entries(aSnap.val()).filter(([id, a]) => mine(a)).reduce((s, [id, a]) => s + partMembre(cfg, 'actions', a), 0);
       const totalLabos = entries(lSnap.val()).filter(([id, l]) => mine(l)).reduce((s, [id, l]) => s + partMembre(cfg, 'labos', l), 0);
+      const totalVentes = entries(vSnap.val()).filter(([id, v]) => mine(v)).reduce((s, [id, v]) => s + partMembre(cfg, 'ventes', v), 0);
       const totalRecoltes = entries(rSnap.val()).filter(([id, r]) => mine(r)).reduce((s, [id, r]) => s + partMembre(cfg, 'recoltes', r), 0);
 
       document.getElementById('stats').innerHTML = `
-        <div class="stat"><div class="v">${fmtMoney(totalActions + totalLabos + totalRecoltes)}</div><div class="l">Ma part totale</div></div>
+        <div class="stat"><div class="v">${fmtMoney(totalActions + totalLabos + totalRecoltes + totalVentes)}</div><div class="l">Ma part totale</div></div>
         <div class="stat"><div class="v">${fmtMoney(totalActions)}</div><div class="l">💵 Actions</div></div>
         <div class="stat"><div class="v">${fmtMoney(totalLabos)}</div><div class="l">🧪 Labos</div></div>
         <div class="stat"><div class="v">${fmtMoney(totalRecoltes)}</div><div class="l">🌿 Récoltes</div></div>
+        <div class="stat"><div class="v">${fmtMoney(totalVentes)}</div><div class="l">💊 Ventes</div></div>
       `;
     });
 

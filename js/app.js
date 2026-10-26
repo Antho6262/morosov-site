@@ -37,8 +37,8 @@ function initShell(pageKey, title) {
 
   document.getElementById('sidebar').innerHTML = `
     <div class="brand">
-      <img src="../img/logo.svg" alt="Morosov" class="brand-logo">
-      <div class="tag">МОРОЗОВ</div>
+      <img src="../img/logo.png" alt="Morosov" class="brand-logo">
+      <div class="tag">MOROSOV</div>
     </div>
     <div class="navlist">${navHtml}</div>
     <div class="who">
@@ -182,15 +182,17 @@ function partMembre(cfg, kind, item) {
   if (kind === 'actions')  return (item.montant || 0) * ((cfg.taux_action_pct || 0) / 100);
   if (kind === 'labos')    return (item.labos_qty || 0) * (cfg.taux_labo || 0);
   if (kind === 'recoltes') return (item.qty || 0) * (cfg.taux_recolte || 0);
+  if (kind === 'ventes')   return (item.qty || 0) * (cfg.taux_pochon || 0);
   return 0;
 }
 
 // Calcule le solde d'argent sale / propre depuis toutes les sources Firebase
 async function computeSoldes() {
-  const [aSnap, lSnap, rSnap, biSnap, flSnap, arSnap, txSnap, taxSnap, cSnap, argSaleSnap, argPropreSnap, blanchSnap, payeSnap] = await Promise.all([
+  const [aSnap, lSnap, rSnap, vSnap, biSnap, flSnap, arSnap, txSnap, taxSnap, cSnap, argSaleSnap, argPropreSnap, blanchSnap, payeSnap] = await Promise.all([
     db.ref('actions').get(),
     db.ref('labos').get(),
     db.ref('recoltes').get(),
+    db.ref('ventes').get(),
     db.ref('bijouteries').get(),
     db.ref('fleecas').get(), // = Banques
     db.ref('armureries').get(),
@@ -217,6 +219,10 @@ async function computeSoldes() {
     ajoute(l.membre_id, partMembre(cfg, 'labos', l));
   });
   entries(rSnap.val()).forEach(([id, r]) => ajoute(r.membre_id, partMembre(cfg, 'recoltes', r)));
+  entries(vSnap.val()).filter(([id, v]) => v.resultat !== 'Échec').forEach(([id, v]) => {
+    solde_sale += v.montant || 0; // vente de pochons : l'argent va au groupe
+    ajoute(v.membre_id, partMembre(cfg, 'ventes', v));
+  });
   // Bijouterie / Banque / Armurerie : tout va au groupe, aucune part individuelle
   [biSnap, flSnap, arSnap].forEach(snap => {
     entries(snap.val()).filter(([id, r]) => r.resultat !== 'Échec').forEach(([id, r]) => { solde_sale += r.montant || 0; });
@@ -267,10 +273,11 @@ async function computeSoldes() {
 // Permet de payer une semaine passée même si elle est bloquée.
 // ------------------------------------------------------------
 async function computeGainsSemaine(semaineId) {
-  const [aSnap, lSnap, rSnap, cSnap, payeSnap] = await Promise.all([
+  const [aSnap, lSnap, rSnap, vSnap, cSnap, payeSnap] = await Promise.all([
     db.ref('actions').get(),
     db.ref('labos').get(),
     db.ref('recoltes').get(),
+    db.ref('ventes').get(),
     db.ref('config').get(),
     db.ref('payes').get(),
   ]);
@@ -282,6 +289,7 @@ async function computeGainsSemaine(semaineId) {
   entries(aSnap.val()).filter(([id, a]) => matchWeek(a)).forEach(([id, a]) => ajoute(a.membre_id, partMembre(cfg, 'actions', a)));
   entries(lSnap.val()).filter(([id, l]) => matchWeek(l)).forEach(([id, l]) => ajoute(l.membre_id, partMembre(cfg, 'labos', l)));
   entries(rSnap.val()).filter(([id, r]) => matchWeek(r)).forEach(([id, r]) => ajoute(r.membre_id, partMembre(cfg, 'recoltes', r)));
+  entries(vSnap.val()).filter(([id, v]) => matchWeek(v)).forEach(([id, v]) => ajoute(v.membre_id, partMembre(cfg, 'ventes', v)));
   // Bijouterie / Banque / Armurerie : aucune part individuelle, non comptés dans la paye
 
   const payeParMembre = {};

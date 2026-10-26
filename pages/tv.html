@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Morosov — Mode TV</title>
+<link rel="icon" href="../img/favicon.png">
 <link rel="stylesheet" href="../css/style.css">
 <style>
   body{ overflow:hidden; }
@@ -71,9 +72,9 @@
 <div class="tv-wrap">
 
   <div class="tv-slide active" data-slide="intro">
-    <img src="../img/logo.svg" alt="Morosov" class="tv-logo">
-    <div class="tv-title">МОРОЗОВ</div>
-    <div class="tv-sub">ОРГАНИЗАЦИЯ</div>
+    <img src="../img/logo.png" alt="Morosov" class="tv-logo">
+    <div class="tv-title">MOROSOV</div>
+    <div class="tv-sub">ORGANISATION</div>
   </div>
 
   <div class="tv-slide" data-slide="podium">
@@ -160,11 +161,12 @@
 
     // ---- Données principales (rafraîchies toutes les 60s) ----
     async function chargerDonnees() {
-      const [mSnap, aSnap, lSnap, rSnap, cSnap] = await Promise.all([
+      const [mSnap, aSnap, lSnap, rSnap, vSnap, cSnap] = await Promise.all([
         db.ref('membres').get(),
         db.ref('actions').get(),
         db.ref('labos').get(),
         db.ref('recoltes').get(),
+        db.ref('ventes').get(),
         db.ref('config').get()
       ]);
       const membres = Object.fromEntries(entries(mSnap.val()));
@@ -173,6 +175,7 @@
       const actions = entries(aSnap.val()).filter(([,a]) => a.resultat !== 'Échec');
       const labos = entries(lSnap.val()).filter(([,l]) => l.resultat !== 'Échec');
       const recoltes = entries(rSnap.val());
+      const ventes = entries(vSnap.val()).filter(([,v]) => v.resultat !== 'Échec');
 
       // Part due — toutes semaines confondues (classement) + semaine active (podium)
       const partTotal = {}, partSemaine = {}, cotisationSemaine = {};
@@ -181,7 +184,7 @@
         partTotal[item.membre_id] = (partTotal[item.membre_id] || 0) + part;
         if (item.semaine_id === activeWeekId) partSemaine[item.membre_id] = (partSemaine[item.membre_id] || 0) + part;
       });
-      addPart(actions, 'actions'); addPart(labos, 'labos'); addPart(recoltes, 'recoltes');
+      addPart(actions, 'actions'); addPart(labos, 'labos'); addPart(recoltes, 'recoltes'); addPart(ventes, 'ventes');
       actions.forEach(([, a]) => { if (a.semaine_id === activeWeekId) cotisationSemaine[a.membre_id] = (cotisationSemaine[a.membre_id] || 0) + (a.montant || 0); });
 
       const actifs = Object.entries(membres).filter(([id, m]) => m.actif !== false && !m.invisible);

@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Morosov — Tracker</title>
+<link rel="icon" href="../img/favicon.png">
 <link rel="stylesheet" href="../css/style.css">
 </head>
 <body>
@@ -33,6 +34,7 @@
       <button data-tab="actions" class="active">💵 Actions</button>
       <button data-tab="labo">🧪 Labos</button>
       <button data-tab="recolte">🌿 Récoltes</button>
+      <button data-tab="vente">💊 Vente</button>
       <button data-tab="bijouterie">💎 Bijouterie</button>
       <button data-tab="banque">🏦 Banque</button>
       <button data-tab="armurerie">🔫 Armurerie</button>
@@ -114,6 +116,35 @@
       </div>
     </div>
 
+    <!-- VENTE -->
+    <div class="tabpanel" id="panel-vente">
+      <div class="card">
+        <h3>Nouvelle vente</h3>
+        <form class="entry" id="form-vente">
+          <div class="field"><label>Membre</label><select id="v-member" required></select></div>
+          <div class="field"><label>Produit</label><select id="v-produit"></select></div>
+          <div class="field" id="v-purete-wrap" style="display:none;"><label>Pureté vendue</label><select id="v-purete">
+            <option value="brut">Non purifié</option><option value="50">50%</option><option value="70">70%</option><option value="90">90%</option><option value="99">99%</option>
+          </select></div>
+          <div class="field"><label>Pochons vendus 💊</label><input type="number" id="v-qty" min="1" step="1" value="1" required></div>
+          <div class="field"><label>Montant total gagné ($)</label><input type="number" id="v-montant" min="0" step="1" required></div>
+          <div class="field"><label>Résultat</label>
+            <select id="v-resultat"><option value="Réussite">✅ Réussite</option><option value="Échec">❌ Échec</option></select>
+          </div>
+          <div class="field" id="v-raison-wrap" style="display:none;"><label>Raison de l'échec</label><input type="text" id="v-raison" placeholder="optionnel"></div>
+          <div class="field"><label>Note</label><input type="text" id="v-note" placeholder="optionnel"></div>
+          <button class="submit" type="submit">Ajouter</button>
+        </form>
+        <div class="note-hint" id="v-rate-hint"></div>
+      </div>
+      <div class="card">
+        <h3>Historique</h3>
+        <table><thead><tr><th>Membre</th><th>Produit</th><th>Pochons</th><th>Montant</th><th>Résultat</th><th>Part membre</th><th>Note</th><th>Date</th><th></th></tr></thead><tbody id="v-table"></tbody></table>
+        <div class="totals" id="v-totals"></div>
+        <div class="grand" id="v-grand"></div>
+      </div>
+    </div>
+
     <!-- BIJOUTERIE / BANQUE / ARMURERIE (générés) -->
     <div id="braquage-panels"></div>
   </main>
@@ -166,7 +197,7 @@
     let activeWeekId = null;
     let semaineFiltre = '';
     let membreFiltre = '';
-    let lastActionsSnap = null, lastLabosSnap = null, lastRecoltesSnap = null;
+    let lastActionsSnap = null, lastLabosSnap = null, lastRecoltesSnap = null, lastVentesSnap = null;
     const braquageRenders = {};
 
     db.ref('config/semaine_active_id').on('value', s => {
@@ -190,7 +221,7 @@
     }
 
     function rafraichirTout() {
-      renderActions(); renderLabo(); renderRecolte();
+      renderActions(); renderLabo(); renderRecolte(); renderVente();
       Object.values(braquageRenders).forEach(fn => fn());
     }
 
@@ -203,7 +234,7 @@
       });
     });
 
-    ['a', 'l', ...BRAQUAGES.map(b => b.prefix)].forEach(prefix => {
+    ['a', 'l', 'v', ...BRAQUAGES.map(b => b.prefix)].forEach(prefix => {
       document.getElementById(prefix + '-resultat').addEventListener('change', e => {
         document.getElementById(prefix + '-raison-wrap').style.display = e.target.value === 'Échec' ? 'block' : 'none';
       });
@@ -217,7 +248,7 @@
       const opts = listePourSelect
         .map(([id, m]) => `<option value="${id}">${gradeInfo(m.grade).emoji} ${m.prenom}</option>`)
         .join('') || '<option value="">Aucun membre — ajoute-le dans Admin</option>';
-      ['a-member', 'l-member', 'r-member'].forEach(sid => {
+      ['a-member', 'l-member', 'r-member', 'v-member'].forEach(sid => {
         const sel = document.getElementById(sid);
         const cur = sel.value;
         sel.innerHTML = opts;
@@ -254,6 +285,7 @@
         `Meth = 150 champignons verts + 150 rouges. Cocaïne = 150 feuilles + 150 acide. Les ingrédients sont retirés du Stock s'ils existent. ` + taux(config.taux_labo, '$ par labo');
       document.getElementById('r-rate-hint').textContent =
         `Quota : ${q.recolte.toLocaleString('fr-FR')} récoltes par membre et par semaine, tous produits confondus. Les quantités sont ajoutées au Stock si le produit existe. ` + taux(config.taux_recolte, '$ par unité');
+      document.getElementById('v-rate-hint').textContent = `Les pochons vendus sont retirés du Stock s'ils y sont. ` + taux(config.taux_pochon, '$ par pochon vendu');
       BRAQUAGES.forEach(b => {
         document.getElementById(b.prefix + '-hint').textContent =
           `Objectif du groupe : ${q[b.quota]} ${b.label.toLowerCase()}s par semaine. L'argent va entièrement au groupe, aucune part individuelle.`;
@@ -461,6 +493,94 @@
       document.getElementById('r-qty').value = '1';
       document.getElementById('r-note').value = '';
     });
+
+    // ---- VENTE (pochons) ----
+    function renderVente() {
+      if (!lastVentesSnap) return;
+      const rows = entries(lastVentesSnap.val()).filter(([, item]) => filtre(item));
+      const tbody = document.getElementById('v-table');
+      const totals = {}; let grand = 0;
+      if (rows.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" class="empty">Aucune vente enregistrée.</td></tr>`;
+      } else {
+        tbody.innerHTML = rows.slice().reverse().map(([id, v]) => {
+          if (v.resultat !== 'Échec') { totals[v.membre_id] = (totals[v.membre_id] || 0) + (v.montant || 0); grand += (v.montant || 0); }
+          return `<tr>
+            <td>${nomMembre(v.membre_id)}</td>
+            <td>${v.produit_nom || '—'}${v.purete ? ' — ' + (v.purete === 'brut' ? 'Non purifié' : v.purete + '%') : ''}</td>
+            <td>💊 ${v.qty}</td>
+            <td>${fmtMoney(v.montant)}</td>
+            <td>${cellResultat(v)}</td>
+            <td class="amt">${fmtMoney(partMembre(config, 'ventes', v))}</td>
+            <td>${v.note || '—'}</td>
+            <td>${fmtDateHeure(v.date)}</td>
+            <td><button class="del" data-id="${id}" data-type="ventes">✕</button></td>
+          </tr>`;
+        }).join('');
+      }
+      renderTotalsChips('v-totals', totals);
+      document.getElementById('v-grand').textContent = 'Total gagné (groupe) : ' + fmtMoney(grand);
+    }
+    db.ref('ventes').on('value', snap => { lastVentesSnap = snap; renderVente(); });
+
+    document.getElementById('form-vente').addEventListener('submit', e => {
+      e.preventDefault();
+      const membre_id = document.getElementById('v-member').value;
+      const produitSel = document.getElementById('v-produit');
+      const produit_nom = produitSel.selectedOptions[0] ? produitSel.selectedOptions[0].textContent.trim() : '';
+      const produit_cat = produitSel.value ? produitSel.value.split('|')[0] : '';
+      const produit_id = produitSel.value ? produitSel.value.split('|')[1] : '';
+      const qty = parseInt(document.getElementById('v-qty').value, 10);
+      const montant = parseFloat(document.getElementById('v-montant').value);
+      const resultat = document.getElementById('v-resultat').value;
+      const raison = document.getElementById('v-raison').value.trim();
+      const note = document.getElementById('v-note').value.trim();
+      if (!membre_id || isNaN(qty) || qty < 1 || isNaN(montant)) return;
+      const purete = (produit_cat && PRODUITS_PURIFIABLES[produit_cat + '|' + produit_id]) ? document.getElementById('v-purete').value : '';
+      db.ref('ventes/' + uid()).set({ membre_id, produit_nom, ...(purete ? { purete } : {}), resultat, raison, note, qty, montant, date: new Date().toISOString(), par: membre.id, semaine_id: activeWeekId });
+      if (produit_cat && produit_id) {
+        const refProd = db.ref(`stock/${produit_cat}/produits/${produit_id}`);
+        refProd.get().then(s => {
+          const p = s.val() || {};
+          if (purete) {
+            const pu = Object.assign({ brut: 0, '50': 0, '70': 0, '90': 0, '99': 0 }, p.purete || {});
+            pu[purete] = Math.max(0, (pu[purete] || 0) - qty);
+            const total = Object.values(pu).reduce((a, b) => a + (Number(b) || 0), 0);
+            return refProd.update({ purete: pu, stock: total });
+          }
+          return refProd.update({ stock: Math.max(0, (p.stock || 0) - qty) });
+        }).catch(err => console.error(err));
+      }
+      document.getElementById('v-qty').value = '1';
+      document.getElementById('v-montant').value = '';
+      document.getElementById('v-note').value = '';
+      document.getElementById('v-raison').value = '';
+      document.getElementById('v-raison-wrap').style.display = 'none';
+      document.getElementById('v-resultat').value = 'Réussite';
+    });
+
+    // remplit le select produit (catégorie Stock contenant "drogue", sinon toutes les catégories)
+    let PRODUITS_PURIFIABLES = {};
+    db.ref('stock').on('value', snap => {
+      const cats = entries(snap.val());
+      const sel = document.getElementById('v-produit');
+      const cur = sel.value;
+      const catsDrogue = cats.filter(([id, c]) => (c.nom || '').toLowerCase().includes('drogue'));
+      const catsAffichees = catsDrogue.length ? catsDrogue : cats;
+      const opts = [];
+      catsAffichees.forEach(([catId, cat]) => {
+        entries(cat.produits).forEach(([pid, p]) => opts.push(`<option value="${catId}|${pid}">${p.nom}</option>`));
+      });
+      PRODUITS_PURIFIABLES = {};
+      catsAffichees.forEach(([catId, cat]) => entries(cat.produits).forEach(([pid, p]) => { if (p.purifiable) PRODUITS_PURIFIABLES[catId + '|' + pid] = true; }));
+      sel.innerHTML = opts.length ? opts.join('') : '<option value="">Aucun produit — crée-en dans Stock</option>';
+      if (cur) sel.value = cur;
+      majPureteVente();
+    });
+    function majPureteVente() {
+      document.getElementById('v-purete-wrap').style.display = PRODUITS_PURIFIABLES[document.getElementById('v-produit').value] ? '' : 'none';
+    }
+    document.getElementById('v-produit').addEventListener('change', majPureteVente);
 
     // ---- BIJOUTERIE / BANQUE / ARMURERIE (braquages de groupe, aucune part individuelle) ----
     BRAQUAGES.forEach(b => {

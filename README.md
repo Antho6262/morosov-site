@@ -1,4 +1,4 @@
-# ❄️ МОРОЗОВ — Site de l'organisation
+# ❄️ MOROSOV — Site de l'organisation
 
 ## 1. Firebase
 Le site utilise le projet Firebase existant (config déjà dans `js/firebase-config.js`). Les données de Morosov sont rangées dans le dossier `morosov/` de la base, séparées des autres groupes. Pour changer de projet, remplace le bloc `FIREBASE_CONFIG`.
@@ -14,6 +14,7 @@ Ouvre `index.html` → **Initialiser le site** → crée ton compte Fondateur (a
 - **Objectifs du groupe** : 4 bijouteries, 12 banques, 12 armureries par semaine.
 - **Labos** : Meth (150 champignons verts + 150 rouges) et Cocaïne (150 feuilles + 150 acide) = 150 pochons par labo, 1 labo max par heure. Les ingrédients sont retirés du Stock, les récoltes y sont ajoutées (si le produit existe, avec "champignon vert", "champignon rouge", "feuille", "acide" dans son nom).
 - **Tenue** : haut blanc, bas bleu, accessoire blanc (facultatif).
+- **Vente** : onglet pochons vendus (produit pris dans le Stock, comme sur Mugiwara).
 - **Paye** : taux à 0 par défaut. À renseigner dans **Admin → Taux** quand le lead donne les montants.
 - Tous les objectifs se modifient dans **Admin → Quotas**.
 

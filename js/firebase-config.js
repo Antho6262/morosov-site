@@ -35,7 +35,7 @@ const GRADES_DEFAUT = [
 //  - pour le groupe entier : bijouteries, banques, armureries
 const QUOTAS_DEFAUT = { cotisation: 28000, labo: 15, recolte: 5000, bijouterie: 4, banque: 12, armurerie: 12 };
 // Rémunération : à renseigner dans Admin → Taux quand le lead aura donné les montants
-const CONFIG_DEFAUT = { taux_action_pct: 0, taux_labo: 0, taux_recolte: 0, blanchiment_taux: 20 };
+const CONFIG_DEFAUT = { taux_action_pct: 0, taux_labo: 0, taux_recolte: 0, taux_pochon: 0, blanchiment_taux: 20 };
 function getConfig(raw) {
   const c = Object.assign({}, CONFIG_DEFAUT, raw || {});
   c.quotas = Object.assign({}, QUOTAS_DEFAUT, (raw && raw.quotas) || {});

@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Morosov — Stats & Quotas</title>
+<link rel="icon" href="../img/favicon.png">
 <link rel="stylesheet" href="../css/style.css">
 <style>
   .bar-wrap{background:var(--bg-1);border:1px solid var(--line);border-radius:20px;height:10px;overflow:hidden;width:70px;}
@@ -57,7 +58,7 @@
     </div>
 
     <div class="tabpanel" id="panel-stats">
-      <div class="grid cols-4" id="stat-cards"></div>
+      <div class="grid cols-3" id="stat-cards"></div>
       <div class="card">
         <h3>Meilleurs en actions ($)</h3>
         <table><thead><tr><th>Membre</th><th>Ramené</th></tr></thead><tbody id="top-actions"></tbody></table>
@@ -65,6 +66,10 @@
       <div class="card">
         <h3>Meilleurs en labos</h3>
         <table><thead><tr><th>Membre</th><th>Labos lancés</th></tr></thead><tbody id="top-labos"></tbody></table>
+      </div>
+      <div class="card">
+        <h3>Meilleurs vendeurs (pochons)</h3>
+        <table><thead><tr><th>Membre</th><th>Pochons vendus</th></tr></thead><tbody id="top-ventes"></tbody></table>
       </div>
       <div class="card">
         <h3>Meilleurs récolteurs</h3>
@@ -91,7 +96,7 @@
     });
 
     let semaineFiltre = '';
-    let data = null; // { membres, cfg, actions, labos, recoltes, bijouteries, fleecas, armureries }
+    let data = null; // { membres, cfg, actions, labos, recoltes, ventes, bijouteries, fleecas, armureries }
 
     async function chargerSemaines() {
       const [allSnap, activeSnap] = await Promise.all([db.ref('semaines').get(), db.ref('config/semaine_active_id').get()]);
@@ -111,7 +116,7 @@
 
     function renderStats() {
       if (!data) return;
-      const { membres, actions, labos, recoltes, bijouteries, fleecas, armureries } = data;
+      const { membres, actions, labos, recoltes, ventes, bijouteries, fleecas, armureries } = data;
       const nbLabos = labos.filter(([, i]) => matchWeek(i)).reduce((s, [, l]) => s + (l.labos_qty || 0), 0);
       const nbPochons = labos.filter(([, i]) => matchWeek(i)).reduce((s, [, l]) => s + (l.pochons || 0), 0);
       const nbRecoltes = recoltes.filter(([, i]) => matchWeek(i)).reduce((s, [, r]) => s + (r.qty || 0), 0);
@@ -122,6 +127,7 @@
         <div class="stat"><div class="v">${fmtMoney(totalActions)}</div><div class="l">💵 Actions</div></div>
         <div class="stat"><div class="v">${nbLabos}</div><div class="l">🧪 Labos (${nbPochons.toLocaleString('fr-FR')} pochons)</div></div>
         <div class="stat"><div class="v">${nbRecoltes.toLocaleString('fr-FR')}</div><div class="l">🌿 Récoltes</div></div>
+        <div class="stat"><div class="v">${ventes.filter(([, i]) => matchWeek(i)).reduce((s, [, v]) => s + (v.qty || 0), 0).toLocaleString('fr-FR')}</div><div class="l">💊 Pochons vendus</div></div>
         <div class="stat"><div class="v">${nbBraq}</div><div class="l">💎 Braquages de groupe</div></div>
       `;
 
@@ -132,6 +138,7 @@
         || `<tr><td colspan="2" class="empty">Rien pour le moment.</td></tr>`;
       document.getElementById('top-actions').innerHTML = topList(sommePar(actions, a => a.montant || 0), fmtMoney);
       document.getElementById('top-labos').innerHTML = topList(sommePar(labos, l => l.labos_qty || 0), n => n);
+      document.getElementById('top-ventes').innerHTML = topList(sommePar(ventes, v => v.qty || 0), n => n.toLocaleString('fr-FR'));
       document.getElementById('top-recoltes').innerHTML = topList(sommePar(recoltes, r => r.qty || 0), n => n.toLocaleString('fr-FR'));
     }
 
@@ -176,14 +183,14 @@
     }
 
     Promise.all([
-      db.ref('membres').get(), db.ref('actions').get(), db.ref('labos').get(), db.ref('recoltes').get(),
+      db.ref('membres').get(), db.ref('actions').get(), db.ref('labos').get(), db.ref('recoltes').get(), db.ref('ventes').get(),
       db.ref('bijouteries').get(), db.ref('fleecas').get(), db.ref('armureries').get(), db.ref('config').get()
-    ]).then(([mSnap, aSnap, lSnap, rSnap, biSnap, flSnap, arSnap, cSnap]) => {
+    ]).then(([mSnap, aSnap, lSnap, rSnap, vSnap, biSnap, flSnap, arSnap, cSnap]) => {
       const ok = ([, i]) => i.resultat !== 'Échec';
       data = {
         membres: Object.fromEntries(entries(mSnap.val())),
         cfg: getConfig(cSnap.val()),
-        actions: entries(aSnap.val()).filter(ok), labos: entries(lSnap.val()).filter(ok), recoltes: entries(rSnap.val()),
+        actions: entries(aSnap.val()).filter(ok), labos: entries(lSnap.val()).filter(ok), recoltes: entries(rSnap.val()), ventes: entries(vSnap.val()).filter(ok),
         bijouteries: entries(biSnap.val()).filter(ok), fleecas: entries(flSnap.val()).filter(ok), armureries: entries(arSnap.val()).filter(ok),
       };
       chargerSemaines().then(() => { renderStats(); renderQuotas(); });

@@ -456,7 +456,7 @@ tr:hover td{background:rgba(77,163,255,.06);}
 .pur-grid input{width:100%;padding:5px 8px;}
 
 /* ============================================================
-   MOROSOV — signature : gel, neige, nuit russe (МОРОЗОВ = « le gel »)
+   MOROSOV — signature : gel, neige, nuit russe (Morosov rappelle « le gel »)
    ============================================================ */
 canvas#snow{position:fixed;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none;}
 html::after{opacity:.22;} /* lignes de scan quasi effacées : l'image reste nette comme l'air froid */
@@ -501,3 +501,14 @@ html::after{opacity:.22;} /* lignes de scan quasi effacées : l'image reste nett
 .objgroupe .ct{font-family:'JetBrains Mono',monospace;color:var(--gold);text-align:right;}
 .objgroupe .row.ok .ct{color:var(--success);}
 @media(max-width:600px){.objgroupe .row{grid-template-columns:90px 1fr 56px;gap:8px;}}
+
+/* ---- Visuels officiels du groupe ---- */
+.hero{position:relative;border:1px solid rgba(207,230,255,.35);overflow:hidden;margin-bottom:18px;box-shadow:0 10px 34px rgba(0,0,0,.55), 0 0 30px rgba(77,163,255,.18);}
+.hero img{width:100%;height:auto;max-height:360px;object-fit:cover;object-position:center 35%;display:block;}
+.hero::after{content:"";position:absolute;inset:auto 0 0 0;height:3px;background:linear-gradient(90deg,#ffffff 0 33.3%,#1f5fff 33.3% 66.6%,#e0262d 66.6% 100%);}
+.pagehead .rule{background:linear-gradient(90deg,#ffffff 0 33.3%,#1f5fff 33.3% 66.6%,#e0262d 66.6% 100%);box-shadow:0 0 12px rgba(77,163,255,.5);border-radius:0;}
+.sidebar .brand .brand-logo{width:140px;height:140px;filter:drop-shadow(0 0 14px rgba(77,163,255,.55));}
+.login-logo{width:210px;max-width:60%;}
+body.login-body{background:#04070d url('../img/banner.jpg') center / cover no-repeat fixed;}
+body.login-body::before{background:linear-gradient(180deg, rgba(4,7,13,.55), rgba(4,7,13,.9));}
+body.login-body::after{display:none;}
