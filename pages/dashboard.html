@@ -20,11 +20,6 @@
     <div class="note-hint" style="margin-bottom:16px;">🗓️ Payes le dimanche à 19h par un haut gradé (Lead → Sergent) — argent sale uniquement. 🏆 Récompenses pour les 3 meilleurs de la semaine.</div>
 
 
-    <div class="card" style="text-align:center;">
-      <h3 style="margin-bottom:14px;">⏳ Prochaine paye</h3>
-      <div id="countdown-paye" style="display:flex;justify-content:center;gap:22px;flex-wrap:wrap;"></div>
-    </div>
-
     <div class="card">
       <h3>⏱️ Cooldown braquages</h3>
       <table>
@@ -32,11 +27,6 @@
         <tbody id="cooldown-body"></tbody>
       </table>
       <div class="note-hint">2 braquages par semaine : chacun se libère exactement 7 jours après sa date (réussite ou échec), ce qui garde le même intervalle entre les deux.</div>
-    </div>
-
-    <div class="card">
-      <h3>🗺️ Objectif trésor</h3>
-      <div id="carte-tresor"></div>
     </div>
 
     <div class="card">
@@ -219,55 +209,7 @@
       dernieresListes = { membres, cfg, actions, gofasts, ventes, labos, fleecas, armureries };
       chargerSemaines().then(renderTout);
 
-      // Carte au trésor — total historique (toutes semaines, hors échecs)
-      const totalHistorique =
-        actions.reduce((s, [,a]) => s + (a.montant || 0), 0) +
-        gofasts.reduce((s, [,g]) => s + (g.montant || 0), 0) +
-        ventes.reduce((s, [,v]) => s + (v.montant || 0), 0) +
-        labos.reduce((s, [,l]) => s + (l.montant || 0), 0) +
-        fleecas.reduce((s, [,r]) => s + (r.montant || 0), 0) +
-        armureries.reduce((s, [,r]) => s + (r.montant || 0), 0);
-      renderCarteTresor(totalHistorique);
     });
-
-    function renderCarteTresor(total) {
-      const etapes = [
-        { seuil: 0,        label: 'Départ',   emoji: '❄️' },
-        { seuil: 500000,   label: '$500k',    emoji: '🏝️' },
-        { seuil: 1000000,  label: '$1M',      emoji: '🏝️' },
-        { seuil: 5000000,  label: '$5M',      emoji: '🌋' },
-        { seuil: 10000000, label: '$10M',     emoji: '🗿' },
-        { seuil: 50000000, label: '$50M',   emoji: '💵' },
-      ];
-      const positions = etapes.map((e, i) => (i / (etapes.length - 1)) * 100);
-
-      // position du bateau : interpolation entre les deux étapes encadrant le total
-      let pct = positions[0];
-      for (let i = 0; i < etapes.length - 1; i++) {
-        const a = etapes[i], b = etapes[i + 1];
-        if (total >= a.seuil && total <= b.seuil) {
-          const ratio = b.seuil === a.seuil ? 1 : (total - a.seuil) / (b.seuil - a.seuil);
-          pct = positions[i] + ratio * (positions[i + 1] - positions[i]);
-          break;
-        }
-        if (total > etapes[etapes.length - 1].seuil) pct = 100;
-      }
-
-      const iles = etapes.map((e, i) => `
-        <div class="tresor-ile ${total >= e.seuil ? 'atteinte' : ''}" style="left:${positions[i]}%;">
-          <span>${e.emoji}</span>
-          <span class="label">${e.label}</span>
-        </div>`).join('');
-
-      document.getElementById('carte-tresor').innerHTML = `
-        <div class="tresor-route">
-          <div class="tresor-ligne"></div>
-          ${iles}
-          <div class="tresor-bateau" style="left:${pct}%;">🚙</div>
-        </div>
-        <div class="tresor-progres">${fmtMoney(total)} gagnés au total — objectif $50M</div>
-      `;
-    }
 
     computeSoldes().then(({ solde_sale, solde_propre }) => {
       document.getElementById('soldes').innerHTML = `
@@ -307,40 +249,6 @@
     }
     setInterval(renderCooldown, 30000);
 
-    // ---- Compte à rebours vers la prochaine paye (fin de la semaine active = dimanche 19h) ----
-    let cibleCountdown = null, timerCountdown = null;
-    function tickCountdown() {
-      const el = document.getElementById('countdown-paye');
-      if (!cibleCountdown) return;
-      const diff = cibleCountdown - Date.now();
-      if (diff <= 0) {
-        el.innerHTML = `<div class="cd-bloc"><div class="n">❄️</div><div class="l">Nouvelle semaine imminente</div></div>`;
-        return;
-      }
-      const j = Math.floor(diff / 86400000);
-      const h = Math.floor((diff % 86400000) / 3600000);
-      const m = Math.floor((diff % 3600000) / 60000);
-      const s = Math.floor((diff % 60000) / 1000);
-      el.innerHTML = `
-        <div class="cd-bloc"><div class="n">${j}</div><div class="l">Jours</div></div>
-        <div class="cd-bloc"><div class="n">${String(h).padStart(2,'0')}</div><div class="l">Heures</div></div>
-        <div class="cd-bloc"><div class="n">${String(m).padStart(2,'0')}</div><div class="l">Minutes</div></div>
-        <div class="cd-bloc"><div class="n">${String(s).padStart(2,'0')}</div><div class="l">Secondes</div></div>
-      `;
-    }
-    function demarrerCountdown() {
-      // écoute la semaine active : au tout premier chargement elle est créée après l'ouverture de la page
-      db.ref('config/semaine_active_id').on('value', async snap => {
-        const activeId = snap.val();
-        if (!activeId) return;
-        const semaine = (await db.ref('semaines/' + activeId).get()).val();
-        if (!semaine || !semaine.fin) return;
-        cibleCountdown = new Date(semaine.fin).getTime();
-        tickCountdown();
-        if (!timerCountdown) timerCountdown = setInterval(tickCountdown, 1000);
-      });
-    }
-    demarrerCountdown();
   }
 </script>
 </body>
