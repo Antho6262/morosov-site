@@ -39,7 +39,7 @@
     <div class="card">
       <h3>🎯 Restant à faire cette semaine</h3>
       <table>
-        <thead><tr><th>Membre</th><th>Actions restantes</th><th>Vente restante</th></tr></thead>
+        <thead><tr><th>Membre</th><th>Actions restantes</th><th>Récoltes restantes</th></tr></thead>
         <tbody id="restant-membres"></tbody>
       </table>
     </div>
@@ -119,8 +119,7 @@
         partParMembre[g.membre_id] = (partParMembre[g.membre_id] || 0) + (g.count || 0) * cfg.taux_cambriolage;
       });
       ventesF.forEach(([id, v]) => {
-        totalVente += (v.montant || 0);
-        partParMembre[v.membre_id] = (partParMembre[v.membre_id] || 0) + (v.qty || 0) * cfg.taux_pochon;
+        totalVente += (v.qty || 0);
       });
       labosF.forEach(([id, l]) => {
         totalLabo += (l.montant || 0);
@@ -135,7 +134,7 @@
       document.getElementById('cat-cards').innerHTML = `
         <div class="stat"><div class="v">${fmtMoney(totalActions)}</div><div class="l">💵 Actions</div></div>
         <div class="stat"><div class="v">${fmtMoney(totalGofast)}</div><div class="l">🏠 Cambriolage</div></div>
-        <div class="stat"><div class="v">${fmtMoney(totalVente)}</div><div class="l">💊 Vente</div></div>
+        <div class="stat"><div class="v">${totalVente}</div><div class="l">🌿 Récoltes</div></div>
         <div class="stat"><div class="v">${fmtMoney(totalLabo)}</div><div class="l">🧪 Labo</div></div>
         <div class="stat"><div class="v">${fmtMoney(totalFleeca)}</div><div class="l">🏦 Fleeca</div></div>
         <div class="stat"><div class="v">${fmtMoney(totalArmurerie)}</div><div class="l">🔫 Armurerie</div></div>
@@ -200,7 +199,7 @@
       db.ref('membres').get(),
       db.ref('actions').get(),
       db.ref('cambriolages').get(),
-      db.ref('ventes').get(),
+      db.ref('recoltes').get(),
       db.ref('labos').get(),
       db.ref('fleecas').get(),
       db.ref('armureries').get(),

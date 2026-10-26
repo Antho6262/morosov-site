@@ -38,8 +38,8 @@
     <div class="tabpanel active" id="panel-stats">
       <div class="grid cols-4" id="stat-cards"></div>
       <div class="card">
-        <h3>Meilleurs vendeurs (pochons)</h3>
-        <table><thead><tr><th>Membre</th><th>Pochons vendus</th></tr></thead><tbody id="top-vente"></tbody></table>
+        <h3>Meilleurs récolteurs</h3>
+        <table><thead><tr><th>Membre</th><th>Récoltes</th></tr></thead><tbody id="top-vente"></tbody></table>
       </div>
       <div class="card">
         <h3>Meilleurs go fast</h3>
@@ -55,7 +55,7 @@
           <thead><tr>
             <th>Membre</th>
             <th>💵 Actions (+ 🏠 Cambriolage)</th>
-            <th>💊 Vente</th>
+            <th>🌿 Récoltes</th>
             <th>🧪 Labo</th>
             <th>🏦 Fleeca</th>
             <th>🔫 Armurerie</th>
@@ -119,7 +119,7 @@
       document.getElementById('stat-cards').innerHTML = `
         <div class="stat"><div class="v">${actionsF.length}</div><div class="l">💵 Actions totales</div></div>
         <div class="stat"><div class="v">${gofastsF.reduce((s,[,g])=>s+(g.count||0),0)}</div><div class="l">🏠 Cambriolages totaux</div></div>
-        <div class="stat"><div class="v">${ventesF.reduce((s,[,v])=>s+(v.qty||0),0)}</div><div class="l">💊 Pochons vendus</div></div>
+        <div class="stat"><div class="v">${ventesF.reduce((s,[,v])=>s+(v.qty||0),0)}</div><div class="l">🌿 Récoltes</div></div>
         <div class="stat"><div class="v">${fleecasF.length + armureriesF.length}</div><div class="l">🏦 Braquages Fleeca/Armurerie</div></div>
       `;
 
@@ -132,7 +132,7 @@
         .map(([id, n]) => `<tr><td>${gradeInfo(membres[id].grade).emoji} ${membres[id].prenom}</td><td class="amt">${n} ${unit}</td></tr>`).join('')
         || `<tr><td colspan="2" class="empty">Rien pour le moment.</td></tr>`;
 
-      document.getElementById('top-vente').innerHTML = topList(parVente, '💊');
+      document.getElementById('top-vente').innerHTML = topList(parVente, '🌿');
       document.getElementById('top-gofast').innerHTML = topList(parGofast, '🏠');
     }
 
@@ -151,7 +151,7 @@
       add(actions, 'actions', 'membre_id');
       add(gofasts, 'actions', 'membre_id'); // cambriolage compte comme 1 action pour le quota (paye inchangée)
       addQty(ventes, 'vente', 'membre_id', 'qty'); // compte le nombre de pochons vendus, pas le nombre de ventes
-      addQty(labos, 'labo', 'membre_id', 'branche_qty'); // compte le nombre de branches récoltées
+      addQty(labos, 'labo', 'membre_id', 'branche_qty'); // compte le nombre de labos
       fleecas.forEach(([, r]) => {
         if (!matchWeek(r)) return;
         (r.membres_ids || []).forEach(mid => { compteCat.fleeca[mid] = (compteCat.fleeca[mid] || 0) + 1; });
@@ -204,7 +204,7 @@
       db.ref('membres').get(),
       db.ref('actions').get(),
       db.ref('cambriolages').get(),
-      db.ref('ventes').get(),
+      db.ref('recoltes').get(),
       db.ref('labos').get(),
       db.ref('fleecas').get(),
       db.ref('armureries').get(),

@@ -38,7 +38,7 @@
     Promise.all([
       db.ref('actions').get(),
       db.ref('cambriolages').get(),
-      db.ref('ventes').get(),
+      db.ref('recoltes').get(),
       db.ref('config').get()
     ]).then(([aSnap, gSnap, vSnap, cSnap]) => {
       const cfg = cSnap.val() || { taux_action_pct: 25, taux_cambriolage: 700, taux_pochon: 25 };
@@ -49,13 +49,13 @@
       const totalGofast = entries(gSnap.val()).filter(([id, g]) => mine(g.membre_id))
         .reduce((s, [id, g]) => s + (g.count || 0) * cfg.taux_cambriolage, 0);
       const totalVente = entries(vSnap.val()).filter(([id, v]) => mine(v.membre_id))
-        .reduce((s, [id, v]) => s + (v.qty || 0) * cfg.taux_pochon, 0);
+        .reduce((s, [id, v]) => s + (v.qty || 0), 0);
 
       document.getElementById('stats').innerHTML = `
-        <div class="stat"><div class="v">${fmtMoney(totalActions + totalGofast + totalVente)}</div><div class="l">Mon total</div></div>
+        <div class="stat"><div class="v">${fmtMoney(totalActions + totalGofast)}</div><div class="l">Mon total</div></div>
         <div class="stat"><div class="v">${fmtMoney(totalActions)}</div><div class="l">💵 Actions</div></div>
         <div class="stat"><div class="v">${fmtMoney(totalGofast)}</div><div class="l">🏠 Cambriolage</div></div>
-        <div class="stat"><div class="v">${fmtMoney(totalVente)}</div><div class="l">💊 Vente</div></div>
+        <div class="stat"><div class="v">${totalVente}</div><div class="l">🌿 Récoltes</div></div>
       `;
     });
 

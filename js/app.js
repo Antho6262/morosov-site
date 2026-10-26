@@ -5,6 +5,7 @@ const NAV_ITEMS = [
   { page: 'dashboard',    icon: '🏛️', label: 'Dashboard',    file: 'dashboard.html' },
   { page: 'planning',     icon: '📅', label: 'Planning',     file: 'planning.html' },
   { page: 'tracker',      icon: '📋', label: 'Tracker',      file: 'tracker.html' },
+  { page: 'recoltes',     icon: '🌿', label: 'Récoltes',     file: 'tracker.html?tab=vente' },
   { page: 'stock',        icon: '📦', label: 'Stock',        file: 'stock.html' },
   { page: 'armes',        icon: '🔫', label: 'Armes',        file: 'armes.html' },
   { page: 'transactions', icon: '🧾', label: 'Transactions', file: 'transactions.html' },
@@ -181,7 +182,7 @@ async function computeSoldes() {
   const [aSnap, gSnap, vSnap, lSnap, flSnap, arSnap, biSnap, paSnap, hlSnap, txSnap, taxSnap, cSnap, argSaleSnap, argPropreSnap, blanchSnap, payeSnap] = await Promise.all([
     db.ref('actions').get(),
     db.ref('cambriolages').get(),
-    db.ref('ventes').get(),
+    db.ref('recoltes').get(),
     db.ref('labos').get(),
     db.ref('fleecas').get(),
     db.ref('armureries').get(),
@@ -216,7 +217,7 @@ async function computeSoldes() {
   entries(vSnap.val()).filter(([id, v]) => v.resultat !== 'Échec').forEach(([id, v]) => {
     const montant = v.montant || 0;
     solde_sale += montant;
-    const part = (v.qty || 0) * cfg.taux_pochon;
+    const part = 0;
     parMembre[v.membre_id] = (parMembre[v.membre_id] || 0) + part;
   });
   entries(lSnap.val()).filter(([id, l]) => l.resultat !== 'Échec').forEach(([id, l]) => {
@@ -286,7 +287,7 @@ async function computeGainsSemaine(semaineId) {
   const [aSnap, gSnap, vSnap, lSnap, cSnap, payeSnap] = await Promise.all([
     db.ref('actions').get(),
     db.ref('cambriolages').get(),
-    db.ref('ventes').get(),
+    db.ref('recoltes').get(),
     db.ref('labos').get(),
     db.ref('config').get(),
     db.ref('payes').get(),
@@ -304,7 +305,7 @@ async function computeGainsSemaine(semaineId) {
     parMembre[g.membre_id] = (parMembre[g.membre_id] || 0) + part;
   });
   entries(vSnap.val()).filter(([id, v]) => v.resultat !== 'Échec' && matchWeek(v)).forEach(([id, v]) => {
-    const part = (v.qty || 0) * cfg.taux_pochon;
+    const part = 0;
     parMembre[v.membre_id] = (parMembre[v.membre_id] || 0) + part;
   });
   entries(lSnap.val()).filter(([id, l]) => l.resultat !== 'Échec' && matchWeek(l)).forEach(([id, l]) => {

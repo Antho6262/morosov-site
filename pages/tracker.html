@@ -33,7 +33,7 @@
     <div class="tabs">
       <button data-tab="actions" class="active">💵 Action</button>
       <button data-tab="gofast">🏠 Cambriolage</button>
-      <button data-tab="vente">💊 Vente</button>
+      <button data-tab="vente">🌿 Récolte</button>
       <button data-tab="labo">🧪 Labo</button>
       <button data-tab="fleeca">🏦 Fleeca</button>
       <button data-tab="armurerie">🔫 Armurerie</button>
@@ -97,15 +97,16 @@
     <!-- VENTE -->
     <div class="tabpanel" id="panel-vente">
       <div class="card">
-        <h3>Nouvelle vente</h3>
+        <h3>Nouvelle récolte</h3>
         <form class="entry" id="form-vente">
           <div class="field"><label>Membre</label><select id="v-member" required></select></div>
-          <div class="field"><label>Produit</label><select id="v-produit"></select></div>
-          <div class="field" id="v-purete-wrap" style="display:none;"><label>Pureté vendue</label><select id="v-purete">
-            <option value="brut">Non purifié</option><option value="50">50%</option><option value="70">70%</option><option value="90">90%</option><option value="99">99%</option>
+          <div class="field"><label>Produit</label><select id="v-produit">
+            <option value="Feuille de cocaïne">Feuille de cocaïne</option>
+            <option value="Acide">Acide</option>
+            <option value="Champignon vert">Champignon vert</option>
+            <option value="Champignon rouge">Champignon rouge</option>
           </select></div>
-          <div class="field"><label>Pochons vendus 💊</label><input type="number" id="v-qty" min="1" step="1" value="1" required></div>
-          <div class="field"><label>Montant total gagné ($)</label><input type="number" id="v-montant" min="0" step="1" required></div>
+          <div class="field"><label>Nombre de récoltes 🌿</label><input type="number" id="v-qty" min="1" step="1" value="1" required></div>
           <div class="field"><label>Résultat</label>
             <select id="v-resultat"><option value="Réussite">✅ Réussite</option><option value="Échec">❌ Échec</option></select>
           </div>
@@ -117,7 +118,7 @@
       </div>
       <div class="card">
         <h3>Historique</h3>
-        <table><thead><tr><th>Membre</th><th>Produit</th><th>Pochons</th><th>Montant total</th><th>Résultat</th><th>Part membre</th><th>Note</th><th>Date</th><th></th></tr></thead><tbody id="v-table"></tbody></table>
+        <table><thead><tr><th>Membre</th><th>Produit</th><th>Récoltes</th><th>Résultat</th><th>Note</th><th>Date</th><th></th></tr></thead><tbody id="v-table"></tbody></table>
         <div class="totals" id="v-totals"></div>
         <div class="grand" id="v-grand"></div>
       </div>
@@ -126,32 +127,34 @@
     <!-- LABO -->
     <div class="tabpanel" id="panel-labo">
       <div class="card">
-        <h3>Nouvelle récolte</h3>
+        <h3>Nouveau labo</h3>
         <form class="entry" id="form-labo">
           <div class="field"><label>Membre</label><select id="l-member" required></select></div>
-          <div class="field"><label>Fertilisant utilisé</label><input type="number" id="l-fertilisant" min="0" step="1" value="0"></div>
-          <div class="field"><label>Eau utilisée</label><input type="number" id="l-eau" min="0" step="1" value="0"></div>
-          <div class="field"><label>Graines de strawberry</label><input type="number" id="l-graines" min="0" step="1" value="0"></div>
-          <div class="field"><label>Pots utilisés</label><input type="number" id="l-pots" min="0" step="1" value="0"></div>
-          <div class="field"><label>Nombre de branches récoltées</label><input type="number" id="l-branche" min="1" step="1" value="1" required></div>
-          <div class="field"><label>Montant total gagné ($)</label><input type="number" id="l-montant" min="0" step="1" required></div>
+          <div class="field"><label>Drogue</label><select id="l-type">
+            <option value="Meth">Meth (champignon vert + rouge)</option>
+            <option value="Cocaïne">Cocaïne (feuille + acide)</option>
+          </select></div>
+          <div class="field"><label>Heure du labo</label><input type="time" id="l-heure" required></div>
+          <div class="field"><label>Labo (nombre)</label><input type="number" id="l-branche" min="1" step="1" value="1" required></div>
+          <div class="field"><label id="l-m1-lbl">Champignon vert utilisé</label><input type="number" id="l-m1" min="0" step="1" value="150"></div>
+          <div class="field"><label id="l-m2-lbl">Champignon rouge utilisé</label><input type="number" id="l-m2" min="0" step="1" value="150"></div>
+          <div class="field"><label>Quantité (pochons créés)</label><input type="number" id="l-qty" min="0" step="1" value="150" required></div>
           <div class="field"><label>Résultat</label>
             <select id="l-resultat"><option value="Réussite">✅ Réussite</option><option value="Échec">❌ Échec</option></select>
           </div>
           <div class="field" id="l-raison-wrap" style="display:none;"><label>Raison de l'échec</label><input type="text" id="l-raison" placeholder="optionnel"></div>
           <div class="field"><label>Note</label><input type="text" id="l-note" placeholder="optionnel"></div>
-          <button class="submit" type="submit">Enregistrer la récolte</button>
+          <button class="submit" type="submit">Enregistrer le labo</button>
         </form>
         <div class="note-hint" id="l-rate-hint"></div>
       </div>
       <div class="card">
         <h3>Historique</h3>
         <table>
-          <thead><tr><th>Membre</th><th>Branches</th><th>Fertilisant</th><th>Eau</th><th>Graines</th><th>Pots</th><th>Montant total</th><th>Résultat</th><th>Part membre</th><th>Date</th><th></th></tr></thead>
+          <thead><tr><th>Membre</th><th>Drogue</th><th>Heure</th><th>Labos</th><th>Matières</th><th>Pochons</th><th>Résultat</th><th>Note</th><th>Date</th><th></th></tr></thead>
           <tbody id="l-table"></tbody>
         </table>
         <div class="totals" id="l-totals"></div>
-        <div class="grand" id="l-grand"></div>
       </div>
     </div>
     <!-- FLEECA -->
@@ -352,6 +355,12 @@
       });
     });
 
+    (function () {
+      const t = new URLSearchParams(location.search).get('tab');
+      const b = t && document.querySelector(`.tabs button[data-tab="${t}"]`);
+      if (b) b.click();
+    })();
+
     ['a', 'g', 'v', 'l', 'fl', 'ar', 'bi', 'pa', 'hl'].forEach(prefix => {
       document.getElementById(prefix + '-resultat').addEventListener('change', e => {
         document.getElementById(prefix + '-raison-wrap').style.display = e.target.value === 'Échec' ? 'block' : 'none';
@@ -396,8 +405,8 @@
     function renderHints() {
       document.getElementById('a-rate-hint').textContent = `Taux actuel : ${config.taux_action_pct}% du montant total reversé au membre. Le type "ATM" retire automatiquement 1 unité du produit "ATM" dans le Stock (même en cas d'échec), si le produit existe.`;
       document.getElementById('g-rate-hint').textContent = `Taux actuel : ${fmtMoney(config.taux_cambriolage)} par cambriolage (tarif fixe). Consomme 1 outil de crochetage par cambriolage (même en cas d'échec).`;
-      document.getElementById('v-rate-hint').textContent = `Taux actuel : ${fmtMoney(config.taux_pochon)} par pochon vendu (tarif fixe). Le produit est retiré du stock même en cas d'échec.`;
-      document.getElementById('l-rate-hint').textContent = `Taux actuel : ${fmtMoney(config.taux_branche)} par branche récoltée (tarif fixe). Les ingrédients saisis sont retirés du stock même en cas d'échec.`;
+      document.getElementById('v-rate-hint').textContent = `Les récoltes sont ajoutées au stock du produit correspondant (si il existe). Quota : 5 000 récoltes par semaine, tous produits confondus.`;
+      document.getElementById('l-rate-hint').textContent = `1 labo = 150 de chaque matière → 150 pochons. 1 labo maximum par heure. Les matières sont retirées du stock.`;
     }
 
     function renderTotalsChips(elId, totals) {
@@ -573,187 +582,149 @@
       }
     }
 
-    // ---- VENTE ----
+    // ---- RECOLTE ----
     function renderVente() {
       if (!lastVentesSnap) return;
       const rows = entries(lastVentesSnap.val()).filter(([, item]) => (!semaineFiltre || item.semaine_id === semaineFiltre) && (!membreFiltre || item.membre_id === membreFiltre));
       const tbody = document.getElementById('v-table');
       const totals = {}; let grand = 0;
       if (rows.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="empty">Aucune vente enregistrée.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="empty">Aucune récolte enregistrée.</td></tr>`;
       } else {
         tbody.innerHTML = rows.slice().reverse().map(([id, v]) => {
           const m = membres[v.membre_id];
           const reussite = v.resultat !== 'Échec';
-          const part = reussite ? (v.qty || 0) * config.taux_pochon : 0;
-          totals[v.membre_id] = (totals[v.membre_id] || 0) + (v.montant || 0);
-          grand += (v.montant || 0);
+          if (reussite) { totals[v.membre_id] = (totals[v.membre_id] || 0) + (v.qty || 0); grand += (v.qty || 0); }
           const g = m ? gradeInfo(m.grade) : null;
           return `<tr>
             <td>${g ? g.emoji : '❓'} ${m ? m.prenom : 'Membre supprimé'}</td>
-            <td>${v.produit_nom || '—'}${v.purete ? ' — ' + (v.purete === 'brut' ? 'Non purifié' : v.purete + '%') : ''}</td>
-            <td>💊 ${v.qty}</td>
-            <td>${fmtMoney(v.montant)}</td>
+            <td>${v.produit_nom || '—'}</td>
+            <td>🌿 ${v.qty}</td>
             <td>${reussite ? '✅ Réussite' : `❌ Échec${v.raison ? ' — ' + v.raison : ''}`}</td>
-            <td class="amt">${fmtMoney(part)}</td>
             <td>${v.note || '—'}</td>
             <td>${fmtDateHeure(v.date)}</td>
-            <td><button class="del" data-id="${id}" data-type="ventes">✕</button></td>
+            <td><button class="del" data-id="${id}" data-type="recoltes">✕</button></td>
           </tr>`;
         }).join('');
       }
-      renderTotalsChips('v-totals', totals);
-      document.getElementById('v-grand').textContent = 'Total réel gagné (groupe) : ' + fmtMoney(grand);
+      document.getElementById('v-totals').innerHTML = Object.entries(totals).map(([mid, n]) => {
+        const m = membres[mid]; const g = m ? gradeInfo(m.grade) : null;
+        return `<div class="total-chip">${g ? g.emoji : '❓'} ${m ? m.prenom : '?'} — <b>${n}</b></div>`;
+      }).join('');
+      document.getElementById('v-grand').textContent = 'Total récoltes (groupe) : ' + grand;
     }
-    db.ref('ventes').on('value', snap => { lastVentesSnap = snap; renderVente(); });
+    db.ref('recoltes').on('value', snap => { lastVentesSnap = snap; renderVente(); });
 
     document.getElementById('form-vente').addEventListener('submit', e => {
       e.preventDefault();
       const membre_id = document.getElementById('v-member').value;
-      const produitSel = document.getElementById('v-produit');
-      const produit_nom = produitSel.selectedOptions[0] ? produitSel.selectedOptions[0].textContent.trim() : '';
-      const produit_cat = produitSel.value ? produitSel.value.split('|')[0] : '';
-      const produit_id = produitSel.value ? produitSel.value.split('|')[1] : '';
+      const produit_nom = document.getElementById('v-produit').value;
       const qty = parseInt(document.getElementById('v-qty').value, 10);
-      const montant = parseFloat(document.getElementById('v-montant').value);
       const resultat = document.getElementById('v-resultat').value;
       const raison = document.getElementById('v-raison').value.trim();
       const note = document.getElementById('v-note').value.trim();
-      if (!membre_id || isNaN(qty) || qty < 1 || isNaN(montant)) return;
-      const purete = (produit_cat && PRODUITS_PURIFIABLES[produit_cat + '|' + produit_id]) ? document.getElementById('v-purete').value : '';
-      db.ref('ventes/' + uid()).set({ membre_id, produit_nom, ...(purete ? { purete } : {}), resultat, raison, note, qty, montant, date: new Date().toISOString(), par: membre.id, semaine_id: activeWeekId });
-      if (produit_cat && produit_id) {
-        const refProd = db.ref(`stock/${produit_cat}/produits/${produit_id}`);
-        refProd.get().then(s => {
-          const p = s.val() || {};
-          if (purete) {
-            const pu = Object.assign({ brut: 0, '50': 0, '70': 0, '90': 0, '99': 0 }, p.purete || {});
-            pu[purete] = Math.max(0, (pu[purete] || 0) - qty);
-            const total = Object.values(pu).reduce((a, b) => a + (Number(b) || 0), 0);
-            return refProd.update({ purete: pu, stock: total });
-          }
-          return refProd.update({ stock: Math.max(0, (p.stock || 0) - qty) });
-        }).catch(err => console.error(err));
-      }
+      if (!membre_id || isNaN(qty) || qty < 1) return;
+      db.ref('recoltes/' + uid()).set({ membre_id, produit_nom, resultat, raison, note, qty, date: new Date().toISOString(), par: membre.id, semaine_id: activeWeekId });
+      if (resultat !== 'Échec') ajusterStock(produit_nom, qty);
       document.getElementById('v-qty').value = '1';
-      document.getElementById('v-montant').value = '';
       document.getElementById('v-note').value = '';
       document.getElementById('v-raison').value = '';
       document.getElementById('v-raison-wrap').style.display = 'none';
       document.getElementById('v-resultat').value = 'Réussite';
     });
 
-    // remplit le select produit (catégorie Stock contenant "drogue", sinon toutes les catégories)
-    db.ref('stock').on('value', snap => {
-      const cats = entries(snap.val());
-      const sel = document.getElementById('v-produit');
-      const cur = sel.value;
-      const catsDrogue = cats.filter(([id, c]) => (c.nom || '').toLowerCase().includes('drogue'));
-      const catsAffichees = catsDrogue.length ? catsDrogue : cats;
-      const opts = [];
-      catsAffichees.forEach(([catId, cat]) => {
-        entries(cat.produits).forEach(([pid, p]) => opts.push(`<option value="${catId}|${pid}">${p.nom}</option>`));
-      });
-      PRODUITS_PURIFIABLES = {};
-      catsAffichees.forEach(([catId, cat]) => entries(cat.produits).forEach(([pid, p]) => { if (p.purifiable) PRODUITS_PURIFIABLES[catId + '|' + pid] = true; }));
-      sel.innerHTML = opts.length ? opts.join('') : '<option value="">Aucun produit — crée-en dans Stock</option>';
-      if (cur) sel.value = cur;
-      majPureteVente();
-    });
-    let PRODUITS_PURIFIABLES = {};
-    function majPureteVente() {
-      document.getElementById('v-purete-wrap').style.display = PRODUITS_PURIFIABLES[document.getElementById('v-produit').value] ? '' : 'none';
+    // Ajuste au mieux le stock d'un produit retrouvé par son nom (jamais bloquant)
+    async function ajusterStock(motCle, delta) {
+      try {
+        const norm = t => (t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        const cle = norm(motCle);
+        const cats = entries((await db.ref('stock').get()).val());
+        for (const [catId, cat] of cats) {
+          for (const [pid, p] of entries(cat.produits)) {
+            if (norm(p.nom) === cle || norm(p.nom).includes(cle)) {
+              const ref = db.ref(`stock/${catId}/produits/${pid}/stock`);
+              const cur = (await ref.get()).val() || 0;
+              await ref.set(Math.max(0, cur + delta));
+              return;
+            }
+          }
+        }
+      } catch (err) { console.error('ajusterStock', err); }
     }
-    document.getElementById('v-produit').addEventListener('change', majPureteVente);
 
     // ---- LABO ----
+    const MATIERES = { 'Meth': ['Champignon vert', 'Champignon rouge'], 'Cocaïne': ['Feuille de cocaïne', 'Acide'] };
+    function majMatieres() {
+      const t = document.getElementById('l-type').value;
+      document.getElementById('l-m1-lbl').textContent = MATIERES[t][0] + ' utilisé';
+      document.getElementById('l-m2-lbl').textContent = MATIERES[t][1] + ' utilisé';
+    }
+    function majQuantites() {
+      const n = parseInt(document.getElementById('l-branche').value, 10) || 0;
+      document.getElementById('l-m1').value = n * 150;
+      document.getElementById('l-m2').value = n * 150;
+      document.getElementById('l-qty').value = n * 150;
+    }
+    document.getElementById('l-type').addEventListener('change', majMatieres);
+    document.getElementById('l-branche').addEventListener('input', majQuantites);
+
     function renderLabo() {
       if (!lastLabosSnap) return;
       const rows = entries(lastLabosSnap.val()).filter(([, item]) => (!semaineFiltre || item.semaine_id === semaineFiltre) && (!membreFiltre || item.membre_id === membreFiltre));
       const tbody = document.getElementById('l-table');
-      const totals = {}; let grand = 0;
+      const totals = {};
       if (rows.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="11" class="empty">Aucune récolte enregistrée.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="10" class="empty">Aucun labo enregistré.</td></tr>`;
       } else {
         tbody.innerHTML = rows.slice().reverse().map(([id, l]) => {
           const m = membres[l.membre_id];
           const reussite = l.resultat !== 'Échec';
-          const part = reussite ? (l.branche_qty || 0) * (config.taux_branche || 0) : 0;
-          totals[l.membre_id] = (totals[l.membre_id] || 0) + (l.montant || 0);
-          grand += (l.montant || 0);
+          if (reussite) totals[l.membre_id] = (totals[l.membre_id] || 0) + (l.branche_qty || 0);
           const g = m ? gradeInfo(m.grade) : null;
+          const mat = l.type && MATIERES[l.type] ? `${l.m1 || 0} ${MATIERES[l.type][0]} · ${l.m2 || 0} ${MATIERES[l.type][1]}` : '—';
           return `<tr>
             <td>${g ? g.emoji : '❓'} ${m ? m.prenom : 'Membre supprimé'}</td>
-            <td>🌿 ${l.branche_qty || 0}</td>
-            <td>${l.fertilisant || 0}</td>
-            <td>${l.eau || 0}</td>
-            <td>${l.graines || 0}</td>
-            <td>${l.pots || 0}</td>
-            <td>${fmtMoney(l.montant)}</td>
+            <td>${l.type || '—'}</td>
+            <td>${l.heure || '—'}</td>
+            <td>🧪 ${l.branche_qty || 0}</td>
+            <td>${mat}</td>
+            <td>💊 ${l.qty || 0}</td>
             <td>${reussite ? '✅ Réussite' : `❌ Échec${l.raison ? ' — ' + l.raison : ''}`}</td>
-            <td class="amt">${fmtMoney(part)}</td>
+            <td>${l.note || '—'}</td>
             <td>${fmtDateHeure(l.date)}</td>
             <td><button class="del" data-id="${id}" data-type="labos">✕</button></td>
           </tr>`;
         }).join('');
       }
-      renderTotalsChips('l-totals', totals);
-      document.getElementById('l-grand').textContent = 'Total réel gagné (groupe) : ' + fmtMoney(grand);
+      document.getElementById('l-totals').innerHTML = Object.entries(totals).map(([mid, n]) => {
+        const m = membres[mid]; const g = m ? gradeInfo(m.grade) : null;
+        return `<div class="total-chip">${g ? g.emoji : '❓'} ${m ? m.prenom : '?'} — <b>${n} labo${n > 1 ? 's' : ''}</b></div>`;
+      }).join('');
     }
     db.ref('labos').on('value', snap => { lastLabosSnap = snap; renderLabo(); });
-
-    // Retire au mieux les quantités saisies du stock (catégorie "Labo"), sans jamais bloquer l'enregistrement
-    async function deduireStockLabo({ fertilisant, eau, graines, pots }) {
-      try {
-        const stockSnap = await db.ref('stock').get();
-        const cats = entries(stockSnap.val());
-        const catLabo = cats.find(([id, c]) => (c.nom || '').toLowerCase().includes('labo'));
-        if (!catLabo) return;
-        const [catId, cat] = catLabo;
-        const produits = entries(cat.produits);
-        const conso = [
-          { match: 'fertilisant', qty: fertilisant },
-          { match: 'eau', qty: eau },
-          { match: 'graine', qty: graines },
-          { match: 'pot', qty: pots },
-        ];
-        for (const c of conso) {
-          if (!c.qty) continue;
-          const prod = produits.find(([pid, p]) => (p.nom || '').toLowerCase().includes(c.match));
-          if (!prod) continue;
-          const [pid, p] = prod;
-          const ref = db.ref(`stock/${catId}/produits/${pid}/stock`);
-          const cur = (await ref.get()).val() || 0;
-          await ref.set(Math.max(0, cur - c.qty));
-        }
-      } catch (err) {
-        console.error('deduireStockLabo', err); // jamais bloquant
-      }
-    }
 
     document.getElementById('form-labo').addEventListener('submit', e => {
       e.preventDefault();
       const membre_id = document.getElementById('l-member').value;
-      const fertilisant = parseInt(document.getElementById('l-fertilisant').value, 10) || 0;
-      const eau = parseInt(document.getElementById('l-eau').value, 10) || 0;
-      const graines = parseInt(document.getElementById('l-graines').value, 10) || 0;
-      const pots = parseInt(document.getElementById('l-pots').value, 10) || 0;
+      const type = document.getElementById('l-type').value;
+      const heure = document.getElementById('l-heure').value;
       const branche_qty = parseInt(document.getElementById('l-branche').value, 10);
-      const montant = parseFloat(document.getElementById('l-montant').value);
+      const m1 = parseInt(document.getElementById('l-m1').value, 10) || 0;
+      const m2 = parseInt(document.getElementById('l-m2').value, 10) || 0;
+      const qty = parseInt(document.getElementById('l-qty').value, 10) || 0;
       const resultat = document.getElementById('l-resultat').value;
       const raison = document.getElementById('l-raison').value.trim();
       const note = document.getElementById('l-note').value.trim();
-      if (!membre_id || isNaN(branche_qty) || branche_qty < 1 || isNaN(montant)) return;
+      if (!membre_id || !heure || isNaN(branche_qty) || branche_qty < 1) return;
       db.ref('labos/' + uid()).set({
-        membre_id, fertilisant, eau, graines, pots, branche_qty, montant, resultat, raison, note,
+        membre_id, type, heure, branche_qty, m1, m2, qty, montant: 0, resultat, raison, note,
         date: new Date().toISOString(), par: membre.id, semaine_id: activeWeekId
       });
-      deduireStockLabo({ fertilisant, eau, graines, pots });
+      ajusterStock(MATIERES[type][0], -m1);
+      ajusterStock(MATIERES[type][1], -m2);
       document.getElementById('form-labo').reset();
-      document.getElementById('l-branche').value = '1';
-      document.getElementById('l-montant').value = '';
+      majMatieres(); majQuantites();
       document.getElementById('l-raison-wrap').style.display = 'none';
-      document.getElementById('l-resultat').value = 'Réussite';
     });
 
     // ---- FLEECA / ARMURERIE (braquages collectifs, aucune part individuelle) ----
