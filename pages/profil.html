@@ -52,7 +52,7 @@
         .reduce((s, [id, v]) => s + (v.qty || 0), 0);
 
       document.getElementById('stats').innerHTML = `
-        <div class="stat"><div class="v">${fmtMoney(totalActions + totalGofast)}</div><div class="l">Mon total</div></div>
+        <div class="stat"><div class="v">${fmtMoney(totalActions + totalGofast + totalVente * cfg.taux_pochon)}</div><div class="l">Mon total</div></div>
         <div class="stat"><div class="v">${fmtMoney(totalActions)}</div><div class="l">💵 Actions</div></div>
         <div class="stat"><div class="v">${fmtMoney(totalGofast)}</div><div class="l">🏠 Cambriolage</div></div>
         <div class="stat"><div class="v">${totalVente}</div><div class="l">🌿 Récoltes</div></div>

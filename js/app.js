@@ -217,7 +217,7 @@ async function computeSoldes() {
   entries(vSnap.val()).filter(([id, v]) => v.resultat !== 'Échec').forEach(([id, v]) => {
     const montant = v.montant || 0;
     solde_sale += montant;
-    const part = 0;
+    const part = (v.qty || 0) * (cfg.taux_pochon || 0);
     parMembre[v.membre_id] = (parMembre[v.membre_id] || 0) + part;
   });
   entries(lSnap.val()).filter(([id, l]) => l.resultat !== 'Échec').forEach(([id, l]) => {
@@ -305,7 +305,7 @@ async function computeGainsSemaine(semaineId) {
     parMembre[g.membre_id] = (parMembre[g.membre_id] || 0) + part;
   });
   entries(vSnap.val()).filter(([id, v]) => v.resultat !== 'Échec' && matchWeek(v)).forEach(([id, v]) => {
-    const part = 0;
+    const part = (v.qty || 0) * (cfg.taux_pochon || 0);
     parMembre[v.membre_id] = (parMembre[v.membre_id] || 0) + part;
   });
   entries(lSnap.val()).filter(([id, l]) => l.resultat !== 'Échec' && matchWeek(l)).forEach(([id, l]) => {
