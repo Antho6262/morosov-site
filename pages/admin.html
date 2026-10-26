@@ -24,6 +24,7 @@
       <button data-tab="typesaction">💵 Types d'action</button>
       <button data-tab="membres">👥 Membres</button>
       <button data-tab="stockadmin">📦 Stock</button>
+      <button data-tab="grades">🎖️ Grades</button>
       <button data-tab="permissions">👁️ Permissions</button>
     </div>
 
@@ -147,6 +148,20 @@
         </form>
       </div>
       <div id="stockadmin-list"></div>
+    </div>
+
+    <!-- GRADES -->
+    <div class="tabpanel" id="panel-grades">
+      <div class="card">
+        <h3>Grades</h3>
+        <div class="note-hint" style="margin-bottom:14px;">Renomme, réordonne, ajoute ou supprime les grades. « Gestion » = le grade peut gérer le stock, payer et valider les blanchiments. Un grade encore attribué à un membre ne peut pas être supprimé.</div>
+        <div id="grades-list"></div>
+        <form class="entry" id="form-grade" style="margin-top:16px;">
+          <div class="field"><label>Emoji</label><input type="text" id="gr-emoji" maxlength="4" placeholder="🔹"></div>
+          <div class="field"><label>Nom</label><input type="text" id="gr-nom" placeholder="Nouveau grade" required></div>
+          <button class="submit" type="submit">Ajouter le grade</button>
+        </form>
+      </div>
     </div>
 
     <!-- PERMISSIONS -->
@@ -475,6 +490,51 @@
     document.body.addEventListener('click', e => {
       if (e.target.matches('.del[data-type="cat"]')) db.ref('stock/' + e.target.dataset.cat).remove();
       if (e.target.matches('.del[data-type="prod"]')) db.ref(`stock/${e.target.dataset.cat}/produits/${e.target.dataset.prod}`).remove();
+    });
+
+    // ---- Grades ----
+    let gradesEdit = GRADES_DEFAUT.map(g => Object.assign({}, g));
+    function sauverGrades() {
+      const obj = {};
+      gradesEdit.forEach((g, i) => { obj[g.id] = { nom: g.nom, emoji: g.emoji, ordre: i, gestion: !!g.gestion }; });
+      return db.ref('grades').set(obj);
+    }
+    function renderGrades() {
+      document.getElementById('grades-list').innerHTML = gradesEdit.map((g, i) => `
+        <div class="entry" style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;">
+          <input type="text" class="gr-emoji" data-i="${i}" value="${g.emoji}" maxlength="4" style="width:60px;">
+          <input type="text" class="gr-nom" data-i="${i}" value="${g.nom.replace(/"/g, '&quot;')}" style="flex:1;min-width:140px;">
+          <label style="display:flex;gap:6px;align-items:center;"><input type="checkbox" class="gr-gestion" data-i="${i}" ${g.gestion ? 'checked' : ''}> Gestion</label>
+          <button class="ghost gr-up" data-i="${i}" ${i === 0 ? 'disabled' : ''}>↑</button>
+          <button class="ghost gr-down" data-i="${i}" ${i === gradesEdit.length - 1 ? 'disabled' : ''}>↓</button>
+          <button class="del gr-del" data-i="${i}">✕</button>
+        </div>`).join('');
+      const maj = (sel, fn) => document.querySelectorAll(sel).forEach(el => el.addEventListener('change', () => { fn(gradesEdit[+el.dataset.i], el); sauverGrades(); }));
+      maj('.gr-emoji', (g, el) => { g.emoji = el.value.trim() || '🔹'; });
+      maj('.gr-nom', (g, el) => { if (el.value.trim()) g.nom = el.value.trim(); });
+      maj('.gr-gestion', (g, el) => { g.gestion = el.checked; });
+      document.querySelectorAll('.gr-up, .gr-down').forEach(b => b.addEventListener('click', () => {
+        const i = +b.dataset.i, j = b.classList.contains('gr-up') ? i - 1 : i + 1;
+        [gradesEdit[i], gradesEdit[j]] = [gradesEdit[j], gradesEdit[i]];
+        sauverGrades();
+      }));
+      document.querySelectorAll('.gr-del').forEach(b => b.addEventListener('click', async () => {
+        const g = gradesEdit[+b.dataset.i];
+        if (gradesEdit.length <= 1) return;
+        const ms = entries((await db.ref('membres').get()).val());
+        if (ms.some(([, m]) => m.grade === g.id)) { alert('Ce grade est encore attribué à au moins un membre. Change d\'abord leur grade.'); return; }
+        gradesEdit.splice(+b.dataset.i, 1);
+        sauverGrades();
+      }));
+    }
+    renderGrades();
+    document.getElementById('form-grade').addEventListener('submit', e => {
+      e.preventDefault();
+      const nom = document.getElementById('gr-nom').value.trim();
+      if (!nom) return;
+      const emoji = document.getElementById('gr-emoji').value.trim() || '🔹';
+      gradesEdit.push({ id: 'g' + Date.now().toString(36), nom, emoji, ordre: gradesEdit.length, gestion: false });
+      sauverGrades();
     });
 
     // ---- Permissions ----

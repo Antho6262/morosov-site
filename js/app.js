@@ -102,7 +102,8 @@ function toast(msg) {
 
 // peut payer / valider un blanchiment : fondateur, admin, ou grade Lead → Sergent (ordre <= 5)
 function canManage(membre) {
-  return isAdmin(membre) || gradeInfo(membre.grade).ordre <= 5;
+  const g = gradeInfo(membre.grade);
+  return isAdmin(membre) || (g.gestion !== undefined ? !!g.gestion : g.ordre <= 5);
 }
 
 // Renvoie le dimanche 19h le plus récent (passé ou en cours), en heure locale.

@@ -20,17 +20,37 @@ firebase.initializeApp(FIREBASE_CONFIG);
 const _firebaseDb = firebase.database();
 const db = { ref: (chemin) => _firebaseDb.ref(DB_RACINE + '/' + (chemin || '')) };
 
-// Grades fixes du groupe (créés automatiquement à l'initialisation)
-const GRADES_DEFAUT = [
-  { id: 'fondateur', nom: 'Fondateur',  emoji: '🧭', ordre: 0 },
-  { id: 'lead',      nom: 'Lead',       emoji: '👑', ordre: 1 },
-  { id: 'colead',    nom: 'Co Lead',    emoji: '☠️', ordre: 2 },
-  { id: 'brasdroit', nom: 'Bras Droit', emoji: '⚔️', ordre: 3 },
-  { id: 'amiral',    nom: 'Amiral',     emoji: '⚓', ordre: 4 },
-  { id: 'sergent',   nom: 'Sergent',    emoji: '🎖️', ordre: 5 },
-  { id: 'membre',    nom: 'Membre',     emoji: '🗡️', ordre: 6 },
-  { id: 'recrue',    nom: 'Recrue',     emoji: '🔹', ordre: 7 },
+// Grades du groupe : valeurs par défaut, modifiables ensuite dans Admin → Grades (stockées dans la base, mises en cache localement)
+const GRADES_INIT = [
+  { id: 'fondateur', nom: 'Fondateur',  emoji: '🧭', ordre: 0, gestion: true },
+  { id: 'lead',      nom: 'Lead',       emoji: '👑', ordre: 1, gestion: true },
+  { id: 'colead',    nom: 'Co Lead',    emoji: '☠️', ordre: 2, gestion: true },
+  { id: 'brasdroit', nom: 'Bras Droit', emoji: '⚔️', ordre: 3, gestion: true },
+  { id: 'amiral',    nom: 'Amiral',     emoji: '⚓', ordre: 4, gestion: true },
+  { id: 'sergent',   nom: 'Sergent',    emoji: '🎖️', ordre: 5, gestion: true },
+  { id: 'membre',    nom: 'Membre',     emoji: '🗡️', ordre: 6, gestion: false },
+  { id: 'recrue',    nom: 'Recrue',     emoji: '🔹', ordre: 7, gestion: false },
 ];
+const GRADES_DEFAUT = (function () {
+  try {
+    const c = JSON.parse(localStorage.getItem('morosov_grades'));
+    if (Array.isArray(c) && c.length) return c;
+  } catch (e) {}
+  return GRADES_INIT.slice();
+})();
+
+// Synchronise la liste avec la base ; recharge la page une seule fois si elle a changé
+db.ref('grades').on('value', snap => {
+  const v = snap.val();
+  if (!v) return;
+  const liste = Object.entries(v).map(([id, g]) => ({ id, nom: g.nom || id, emoji: g.emoji || '🔹', ordre: g.ordre || 0, gestion: !!g.gestion }))
+    .sort((x, y) => x.ordre - y.ordre);
+  if (!liste.length) return;
+  if (JSON.stringify(liste) === JSON.stringify(GRADES_DEFAUT)) return;
+  try { localStorage.setItem('morosov_grades', JSON.stringify(liste)); } catch (e) {}
+  GRADES_DEFAUT.splice(0, GRADES_DEFAUT.length, ...liste);
+  location.reload();
+});
 
 function gradeInfo(id) {
   return GRADES_DEFAUT.find(g => g.id === id) || GRADES_DEFAUT[GRADES_DEFAUT.length - 1];
