@@ -123,7 +123,7 @@
         partParMembre[v.membre_id] = (partParMembre[v.membre_id] || 0) + (v.qty || 0) * cfg.taux_pochon;
       });
       labosF.forEach(([id, l]) => {
-        totalLabo += (l.montant || 0);
+        totalLabo += (l.branche_qty || 0);
         partParMembre[l.membre_id] = (partParMembre[l.membre_id] || 0) + (l.branche_qty || 0) * (cfg.taux_branche || 0);
       });
       fleecasF.forEach(([id, r]) => { totalFleeca += (r.montant || 0); }); // pas de part individuelle
@@ -136,7 +136,7 @@
         <div class="stat"><div class="v">${fmtMoney(totalActions)}</div><div class="l">💵 Actions</div></div>
         <div class="stat"><div class="v">${fmtMoney(totalGofast)}</div><div class="l">🏠 Cambriolage</div></div>
         <div class="stat"><div class="v">${totalVente}</div><div class="l">🌿 Récoltes</div></div>
-        <div class="stat"><div class="v">${fmtMoney(totalLabo)}</div><div class="l">🧪 Labo</div></div>
+        <div class="stat"><div class="v">${totalLabo}</div><div class="l">🧪 Labo</div></div>
         <div class="stat"><div class="v">${fmtMoney(totalFleeca)}</div><div class="l">🏦 Fleeca</div></div>
         <div class="stat"><div class="v">${fmtMoney(totalArmurerie)}</div><div class="l">🔫 Armurerie</div></div>
         <div class="stat"><div class="v">${fmtMoney(totalBijouterie)}</div><div class="l">💎 Bijouterie</div></div>
