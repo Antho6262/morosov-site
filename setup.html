@@ -11,10 +11,10 @@
 <div class="login-wrap">
   <div class="login-card" style="max-width:440px;">
     <img src="img/logo.png" alt="Morosov" class="login-logo">
-    <h1 style="font-size:30px;letter-spacing:5px;">INITIALISATION</h1>
+    <h1>INITIALISATION</h1>
     <div class="login-sub">PREMIÈRE CONNEXION</div>
     <p style="font-size:14px;color:var(--muted);margin-top:-10px;">
-      Crée le premier compte, grade Fondateur, accès total. Cette page ne doit servir qu'une fois.
+      Crée le premier compte, grade Lead, accès total. Cette page ne doit servir qu'une fois.
     </p>
     <form id="form-setup">
       <div class="field">
@@ -61,11 +61,11 @@
       });
       await db.ref('config').set({
         nom_groupe: 'Morosov',
-        taux_action_pct: CONFIG_DEFAUT.taux_action_pct,
-        taux_labo: CONFIG_DEFAUT.taux_labo,
-        taux_recolte: CONFIG_DEFAUT.taux_recolte,
-        blanchiment_taux: CONFIG_DEFAUT.blanchiment_taux,
-        quotas: QUOTAS_DEFAUT
+        taux_action_pct: 25,
+        taux_cambriolage: 700,
+        taux_pochon: 25,
+        taux_branche: 10,
+        blanchiment_taux: 20
       });
 
       setSession({ id, prenom: pseudo, grade: 'fondateur', role: 'admin' });

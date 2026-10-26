@@ -33,7 +33,7 @@
         <h3>Semaine en cours</h3>
         <div id="semaine-active"></div>
         <div style="margin-top:14px;"><button class="ghost" id="btn-bloquer-semaine" title="Clôture la semaine en cours avant sa date de fin et démarre une nouvelle semaine">Bloquer la semaine en cours maintenant</button></div>
-        <div class="note-hint">Nouvelle semaine créée automatiquement chaque dimanche à 19h (ou dès qu'un membre se connecte après). Bloquer maintenant force la clôture avant terme.</div>
+        <div class="note-hint">Nouvelle semaine créée automatiquement chaque lundi (ou dès qu'un membre se connecte après). Bloquer maintenant force la clôture avant terme.</div>
       </div>
       <div class="card">
         <h3>Historique</h3>
@@ -49,13 +49,13 @@
       <div class="card">
         <h3>Taux & rémunération</h3>
         <div class="grid cols-3">
-          <div class="field"><label>% par action (montant ramené)</label><input type="number" id="cfg-percent" min="0" max="100" step="1"></div>
-          <div class="field"><label>$ par labo lancé</label><input type="number" id="cfg-labo" min="0" step="1"></div>
-          <div class="field"><label>$ par unité récoltée</label><input type="number" id="cfg-recolte" min="0" step="1"></div>
+          <div class="field"><label>% par action (épicerie, ATM, go fast)</label><input type="number" id="cfg-percent" min="0" max="100" step="1"></div>
+          <div class="field"><label>$ par cambriolage</label><input type="number" id="cfg-gofast" min="0" step="1"></div>
           <div class="field"><label>$ par pochon vendu</label><input type="number" id="cfg-pochon" min="0" step="1"></div>
           <div class="field"><label>% frais de blanchiment</label><input type="number" id="cfg-blanchiment" min="0" max="100" step="1"></div>
+          <div class="field"><label>$ par branche produite (labo)</label><input type="number" id="cfg-branche" min="0" step="1"></div>
         </div>
-        <div class="note-hint">À 0 = aucune part versée au membre sur cette ligne. À renseigner dès que le lead a donné les montants de paye de fin de semaine. Le montant des actions reste entièrement au groupe, il sert aussi à la cotisation.</div>
+        <div class="note-hint">Action = % du montant total saisi. Cambriolage/Vente/Labo = tarif fixe par unité, indépendant du montant total (qui appartient entièrement au groupe).</div>
         <div style="margin-top:16px;"><button class="submit" id="cfg-save">Enregistrer</button></div>
       </div>
     </div>
@@ -92,16 +92,15 @@
     <!-- QUOTAS -->
     <div class="tabpanel" id="panel-quotas">
       <div class="card">
-        <h3>Objectifs hebdomadaires</h3>
+        <h3>Objectifs hebdomadaires par catégorie</h3>
         <div class="grid cols-3">
-          <div class="field"><label>💵 Cotisation par membre ($)</label><input type="number" id="q-cotisation" min="0" step="1"></div>
-          <div class="field"><label>🧪 Labos par membre</label><input type="number" id="q-labo" min="0" step="1"></div>
-          <div class="field"><label>🌿 Récoltes par membre (total)</label><input type="number" id="q-recolte" min="0" step="1"></div>
-          <div class="field"><label>💎 Bijouteries (groupe)</label><input type="number" id="q-bijouterie" min="0" step="1"></div>
-          <div class="field"><label>🏦 Banques (groupe)</label><input type="number" id="q-banque" min="0" step="1"></div>
-          <div class="field"><label>🔫 Armureries (groupe)</label><input type="number" id="q-armurerie" min="0" step="1"></div>
+          <div class="field"><label>💵 Actions (+ 🏠 Cambriolage)</label><input type="number" id="q-actions" min="0" step="1"></div>
+          <div class="field"><label>💊 Ventes</label><input type="number" id="q-vente" min="0" step="1"></div>
+          <div class="field"><label>🧪 Récoltes Labo</label><input type="number" id="q-labo" min="0" step="1"></div>
+          <div class="field"><label>🏦 Fleeca</label><input type="number" id="q-fleeca" min="0" step="1"></div>
+          <div class="field"><label>🔫 Armurerie</label><input type="number" id="q-armurerie" min="0" step="1"></div>
         </div>
-        <div class="note-hint">Un objectif à 0 n'affiche pas de barre de progression pour cette catégorie. Remis à zéro à chaque nouvelle semaine.</div>
+        <div class="note-hint">Un objectif à 0 ou vide n'affiche pas de barre de progression pour cette catégorie. Remis à zéro à chaque nouvelle semaine.</div>
         <div style="margin-top:16px;"><button class="submit" id="q-save">Enregistrer</button></div>
       </div>
     </div>
@@ -112,7 +111,7 @@
         <h3>Types d'action</h3>
         <form id="form-type-action" class="grid cols-3">
           <div class="field"><label>Emoji</label><input type="text" id="ta-emoji" maxlength="4" placeholder="💎"></div>
-          <div class="field"><label>Nom</label><input type="text" id="ta-nom" required placeholder="Supérette"></div>
+          <div class="field"><label>Nom</label><input type="text" id="ta-nom" required placeholder="Braquage bijouterie"></div>
           <div class="field" style="align-self:end;"><button class="submit" type="submit">Ajouter</button></div>
         </form>
         <table style="margin-top:16px;">
@@ -285,34 +284,40 @@
 
     // ---- config (taux) ----
     db.ref('config').on('value', snap => {
-      const cfg = getConfig(snap.val());
+      const cfg = Object.assign({ taux_action_pct: 25, taux_cambriolage: 700, taux_pochon: 25, blanchiment_taux: 20, taux_branche: 10 }, snap.val() || {});
       document.getElementById('cfg-percent').value = cfg.taux_action_pct;
-      document.getElementById('cfg-labo').value = cfg.taux_labo;
-      document.getElementById('cfg-recolte').value = cfg.taux_recolte;
+      document.getElementById('cfg-gofast').value = cfg.taux_cambriolage;
       document.getElementById('cfg-pochon').value = cfg.taux_pochon;
       document.getElementById('cfg-blanchiment').value = cfg.blanchiment_taux;
+      document.getElementById('cfg-branche').value = cfg.taux_branche;
     });
 
     document.getElementById('cfg-save').addEventListener('click', () => {
-      const lire = id => parseFloat(document.getElementById(id).value);
-      const champs = { taux_action_pct: lire('cfg-percent'), taux_labo: lire('cfg-labo'), taux_recolte: lire('cfg-recolte'), taux_pochon: lire('cfg-pochon'), blanchiment_taux: lire('cfg-blanchiment') };
-      const update = {};
-      Object.entries(champs).forEach(([k, v]) => { if (!isNaN(v)) update[k] = v; });
-      db.ref('config').update(update);
+      const taux_action_pct = parseFloat(document.getElementById('cfg-percent').value);
+      const taux_cambriolage = parseFloat(document.getElementById('cfg-gofast').value);
+      const taux_pochon = parseFloat(document.getElementById('cfg-pochon').value);
+      const blanchiment_taux = parseFloat(document.getElementById('cfg-blanchiment').value);
+      const taux_branche = parseFloat(document.getElementById('cfg-branche').value);
+      db.ref('config').update({
+        ...(isNaN(taux_action_pct) ? {} : { taux_action_pct }),
+        ...(isNaN(taux_cambriolage) ? {} : { taux_cambriolage }),
+        ...(isNaN(taux_pochon) ? {} : { taux_pochon }),
+        ...(isNaN(blanchiment_taux) ? {} : { blanchiment_taux }),
+        ...(isNaN(taux_branche) ? {} : { taux_branche }),
+      });
       toast('Taux enregistrés.');
     });
 
     // ---- quotas par catégorie ----
     const QUOTA_FIELDS = {
-      cotisation: 'q-cotisation',
+      actions: 'q-actions',
+      vente: 'q-vente',
       labo: 'q-labo',
-      recolte: 'q-recolte',
-      bijouterie: 'q-bijouterie',
-      banque: 'q-banque',
+      fleeca: 'q-fleeca',
       armurerie: 'q-armurerie',
     };
     db.ref('config/quotas').on('value', snap => {
-      const q = Object.assign({}, QUOTAS_DEFAUT, snap.val() || {});
+      const q = snap.val() || {};
       Object.entries(QUOTA_FIELDS).forEach(([key, id]) => {
         document.getElementById(id).value = q[key] || '';
       });
@@ -328,7 +333,10 @@
     });
 
     // ---- types d'action ----
-    const TYPES_DEFAUT = TYPES_ACTION_DEFAUT;
+    const TYPES_DEFAUT = [
+      { emoji: '🏧', nom: 'ATM' }, { emoji: '🏠', nom: 'Cambu' }, { emoji: '📦', nom: 'Conteneur' },
+      { emoji: '🏪', nom: 'Supérette' }, { emoji: '⛽', nom: 'LTD' }, { emoji: '🚗', nom: 'Go Fast' }
+    ];
     let typesActionActuels = null;
     db.ref('config/types_action').on('value', snap => {
       typesActionActuels = snap.val();

@@ -1,8 +1,7 @@
 // ============================================================
 // MOROSOV — Config Firebase
-// Même projet Firebase que ton ancien site (gratuit, rien à créer),
-// mais toutes les données de Morosov sont rangées dans un dossier à part
-// ("morosov/") : aucun mélange avec les autres groupes.
+// Remplace le bloc ci-dessous par celui de TON projet Firebase :
+// Console Firebase → Paramètres du projet → Général → Tes applications → Web (</>)
 // ============================================================
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyCRrO6RryLv7qPGlbV4JbnUsaHgVVTN6Js",
@@ -13,52 +12,29 @@ const FIREBASE_CONFIG = {
   messagingSenderId: "830745761363",
   appId: "1:830745761363:web:44b5af8162f8940f0a98a6"
 };
-const DB_RACINE = 'morosov';
 
+// Toutes les données de Morosov sont rangées dans le dossier "morosov/" de la base :
+// aucun mélange avec les autres sites qui utilisent le même projet Firebase.
+const DB_RACINE = 'morosov';
 firebase.initializeApp(FIREBASE_CONFIG);
 const _firebaseDb = firebase.database();
-// Toutes les lectures / écritures passent par ce dossier
 const db = { ref: (chemin) => _firebaseDb.ref(DB_RACINE + '/' + (chemin || '')) };
 
-// Hiérarchie : Fondateur (créateur du site) › Organisation (Morosov) › Lead (Daria) › Co Lead (Alex, Dimitri) › Membre › Recrue
+// Grades fixes du groupe (créés automatiquement à l'initialisation)
 const GRADES_DEFAUT = [
-  { id: 'fondateur', nom: 'Fondateur',    emoji: '🧊', ordre: 0 },
-  { id: 'orga',      nom: 'Organisation', emoji: '🏛️', ordre: 1 },
-  { id: 'lead',      nom: 'Lead',         emoji: '👑', ordre: 2 },
-  { id: 'colead',    nom: 'Co Lead',      emoji: '❄️', ordre: 3 },
-  { id: 'membre',    nom: 'Membre',       emoji: '🔹', ordre: 4 },
-  { id: 'recrue',    nom: 'Recrue',       emoji: '▫️', ordre: 5 },
+  { id: 'fondateur', nom: 'Fondateur',  emoji: '🧭', ordre: 0 },
+  { id: 'lead',      nom: 'Lead',       emoji: '👑', ordre: 1 },
+  { id: 'colead',    nom: 'Co Lead',    emoji: '☠️', ordre: 2 },
+  { id: 'brasdroit', nom: 'Bras Droit', emoji: '⚔️', ordre: 3 },
+  { id: 'amiral',    nom: 'Amiral',     emoji: '⚓', ordre: 4 },
+  { id: 'sergent',   nom: 'Sergent',    emoji: '🎖️', ordre: 5 },
+  { id: 'membre',    nom: 'Membre',     emoji: '🗡️', ordre: 6 },
+  { id: 'recrue',    nom: 'Recrue',     emoji: '🔹', ordre: 7 },
 ];
 
-// Objectifs hebdomadaires (modifiables dans Admin → Quotas)
-//  - par membre : cotisation, labos, récoltes
-//  - pour le groupe entier : bijouteries, banques, armureries
-const QUOTAS_DEFAUT = { cotisation: 28000, labo: 15, recolte: 5000, bijouterie: 4, banque: 12, armurerie: 12 };
-// Rémunération : à renseigner dans Admin → Taux quand le lead aura donné les montants
-const CONFIG_DEFAUT = { taux_action_pct: 0, taux_labo: 0, taux_recolte: 0, taux_pochon: 0, blanchiment_taux: 20 };
-function getConfig(raw) {
-  const c = Object.assign({}, CONFIG_DEFAUT, raw || {});
-  c.quotas = Object.assign({}, QUOTAS_DEFAUT, (raw && raw.quotas) || {});
-  return c;
+function gradeInfo(id) {
+  return GRADES_DEFAUT.find(g => g.id === id) || GRADES_DEFAUT[GRADES_DEFAUT.length - 1];
 }
-
-// Types d'action (revenus du groupe) — modifiables dans Admin → Types d'action
-const TYPES_ACTION_DEFAUT = [
-  { emoji: '🏧', nom: 'ATM' }, { emoji: '🏠', nom: 'Cambu' }, { emoji: '📦', nom: 'Conteneur' },
-  { emoji: '🏪', nom: 'Supérette' }, { emoji: '⛽', nom: 'LTD' }, { emoji: '🚗', nom: 'Go Fast' }
-];
-
-// Produits des labos : 1 labo max par heure = 150 pochons ; ingrédients = 150 + 150 par labo
-const LABOS_PRODUITS = {
-  'Meth':    { emoji: '🍄', pochons: 150, ingredients: [['champignon vert', 150], ['champignon rouge', 150]] },
-  'Cocaïne': { emoji: '🌿', pochons: 150, ingredients: [['feuille', 150], ['acide', 150]] },
-};
-const RECOLTE_PRODUITS = [
-  { nom: 'Champignon vert', emoji: '🍄', match: 'champignon vert' },
-  { nom: 'Champignon rouge', emoji: '🍄', match: 'champignon rouge' },
-  { nom: 'Feuille de cocaïne', emoji: '🌿', match: 'feuille' },
-  { nom: 'Acide', emoji: '🧪', match: 'acide' },
-];
 
 // Neige qui tombe en fond (canvas léger, coupée si l'utilisateur réduit les animations)
 function startSnow() {

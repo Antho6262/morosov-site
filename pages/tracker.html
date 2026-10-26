@@ -15,7 +15,7 @@
       <h2 id="pagehead-title">Tracker</h2>
       <div class="rule"></div>
     </div>
-    <div class="note-hint" style="margin-bottom:16px;">💵 Le montant des actions compte pour la <b>cotisation hebdomadaire</b> du membre. Les labos et les récoltes comptent pour leurs quotas. Bijouterie, Banque et Armurerie sont des objectifs de <b>groupe</b> : l'argent va au groupe.</div>
+    <div class="note-hint" style="margin-bottom:16px;">💰 Le montant saisi est le total réel ramené au groupe. La part payée au membre (%) est calculée dessus, et réglée séparément dans Paye.</div>
 
     <div class="card" style="margin-bottom:20px;">
       <div class="grid cols-3">
@@ -31,12 +31,11 @@
     </div>
 
     <div class="tabs">
-      <button data-tab="actions" class="active">💵 Actions</button>
-      <button data-tab="labo">🧪 Labos</button>
-      <button data-tab="recolte">🌿 Récoltes</button>
+      <button data-tab="actions" class="active">💵 Action</button>
+      <button data-tab="gofast">🏠 Cambriolage</button>
       <button data-tab="vente">💊 Vente</button>
-      <button data-tab="bijouterie">💎 Bijouterie</button>
-      <button data-tab="banque">🏦 Banque</button>
+      <button data-tab="labo">🧪 Labo</button>
+      <button data-tab="fleeca">🏦 Fleeca</button>
       <button data-tab="armurerie">🔫 Armurerie</button>
     </div>
 
@@ -46,8 +45,10 @@
         <h3>Nouvelle action</h3>
         <form class="entry" id="form-actions">
           <div class="field"><label>Membre</label><select id="a-member" required></select></div>
-          <div class="field"><label>Type</label><select id="a-type"></select></div>
-          <div class="field"><label>Montant ramené ($)</label><input type="number" id="a-montant" min="0" step="1" required></div>
+          <div class="field"><label>Type</label>
+            <select id="a-type"></select>
+          </div>
+          <div class="field"><label>Montant total gagné ($)</label><input type="number" id="a-montant" min="0" step="1" required></div>
           <div class="field"><label>Résultat</label>
             <select id="a-resultat"><option value="Réussite">✅ Réussite</option><option value="Échec">❌ Échec</option></select>
           </div>
@@ -59,60 +60,34 @@
       </div>
       <div class="card">
         <h3>Historique</h3>
-        <table><thead><tr><th>Membre</th><th>Type</th><th>Montant</th><th>Résultat</th><th>Part membre</th><th>Note</th><th>Date</th><th></th></tr></thead><tbody id="a-table"></tbody></table>
+        <table><thead><tr><th>Membre</th><th>Type</th><th>Montant total</th><th>Résultat</th><th>Part membre</th><th>Note</th><th>Date</th><th></th></tr></thead><tbody id="a-table"></tbody></table>
         <div class="totals" id="a-totals"></div>
         <div class="grand" id="a-grand"></div>
       </div>
     </div>
 
-    <!-- LABOS -->
-    <div class="tabpanel" id="panel-labo">
+    <!-- CAMBRIOLAGE -->
+    <div class="tabpanel" id="panel-gofast">
       <div class="card">
-        <h3>Nouveau labo</h3>
-        <form class="entry" id="form-labo">
-          <div class="field"><label>Membre</label><select id="l-member" required></select></div>
-          <div class="field"><label>Produit</label><select id="l-produit"></select></div>
-          <div class="field"><label>Nombre de labos</label><input type="number" id="l-qty" min="1" step="1" value="1" required></div>
-          <div class="field"><label>Pochons produits</label><input type="number" id="l-pochons" min="0" step="1" value="150"></div>
-          <div class="field"><label>Montant revente ($, optionnel)</label><input type="number" id="l-montant" min="0" step="1" value="0"></div>
+        <h3>Nouveau cambriolage</h3>
+        <form class="entry" id="form-gofast">
+          <div class="field"><label>Membre</label><select id="g-member" required></select></div>
+          <div class="field"><label>Nombre de cambriolages</label><input type="number" id="g-count" min="1" step="1" value="1" required></div>
+          <div class="field"><label>Montant total gagné ($)</label><input type="number" id="g-montant" min="0" step="1" required></div>
           <div class="field"><label>Résultat</label>
-            <select id="l-resultat"><option value="Réussite">✅ Réussite</option><option value="Échec">❌ Échec</option></select>
+            <select id="g-resultat"><option value="Réussite">✅ Réussite</option><option value="Échec">❌ Échec</option></select>
           </div>
-          <div class="field" id="l-raison-wrap" style="display:none;"><label>Raison de l'échec</label><input type="text" id="l-raison" placeholder="optionnel"></div>
-          <div class="field"><label>Note</label><input type="text" id="l-note" placeholder="optionnel"></div>
-          <button class="submit" type="submit">Enregistrer le labo</button>
+          <div class="field" id="g-raison-wrap" style="display:none;"><label>Raison de l'échec</label><input type="text" id="g-raison" placeholder="optionnel"></div>
+          <div class="field"><label>Note</label><input type="text" id="g-note" placeholder="optionnel"></div>
+          <button class="submit" type="submit">Ajouter</button>
         </form>
-        <div class="note-hint" id="l-rate-hint"></div>
+        <div class="note-hint" id="g-rate-hint"></div>
       </div>
       <div class="card">
         <h3>Historique</h3>
-        <table>
-          <thead><tr><th>Membre</th><th>Produit</th><th>Labos</th><th>Pochons</th><th>Revente</th><th>Résultat</th><th>Part membre</th><th>Note</th><th>Date</th><th></th></tr></thead>
-          <tbody id="l-table"></tbody>
-        </table>
-        <div class="totals" id="l-totals"></div>
-        <div class="grand" id="l-grand"></div>
-      </div>
-    </div>
-
-    <!-- RÉCOLTES -->
-    <div class="tabpanel" id="panel-recolte">
-      <div class="card">
-        <h3>Nouvelle récolte</h3>
-        <form class="entry" id="form-recolte">
-          <div class="field"><label>Membre</label><select id="r-member" required></select></div>
-          <div class="field"><label>Produit</label><select id="r-produit"></select></div>
-          <div class="field"><label>Quantité récoltée</label><input type="number" id="r-qty" min="1" step="1" value="1" required></div>
-          <div class="field"><label>Note</label><input type="text" id="r-note" placeholder="optionnel"></div>
-          <button class="submit" type="submit">Enregistrer la récolte</button>
-        </form>
-        <div class="note-hint" id="r-rate-hint"></div>
-      </div>
-      <div class="card">
-        <h3>Historique</h3>
-        <table><thead><tr><th>Membre</th><th>Produit</th><th>Quantité</th><th>Part membre</th><th>Note</th><th>Date</th><th></th></tr></thead><tbody id="r-table"></tbody></table>
-        <div class="totals" id="r-totals"></div>
-        <div class="grand" id="r-grand"></div>
+        <table><thead><tr><th>Membre</th><th>Cambriolages</th><th>Montant total</th><th>Résultat</th><th>Part membre</th><th>Note</th><th>Date</th><th></th></tr></thead><tbody id="g-table"></tbody></table>
+        <div class="totals" id="g-totals"></div>
+        <div class="grand" id="g-grand"></div>
       </div>
     </div>
 
@@ -139,14 +114,100 @@
       </div>
       <div class="card">
         <h3>Historique</h3>
-        <table><thead><tr><th>Membre</th><th>Produit</th><th>Pochons</th><th>Montant</th><th>Résultat</th><th>Part membre</th><th>Note</th><th>Date</th><th></th></tr></thead><tbody id="v-table"></tbody></table>
+        <table><thead><tr><th>Membre</th><th>Produit</th><th>Pochons</th><th>Montant total</th><th>Résultat</th><th>Part membre</th><th>Note</th><th>Date</th><th></th></tr></thead><tbody id="v-table"></tbody></table>
         <div class="totals" id="v-totals"></div>
         <div class="grand" id="v-grand"></div>
       </div>
     </div>
 
-    <!-- BIJOUTERIE / BANQUE / ARMURERIE (générés) -->
-    <div id="braquage-panels"></div>
+    <!-- LABO -->
+    <div class="tabpanel" id="panel-labo">
+      <div class="card">
+        <h3>Nouvelle récolte</h3>
+        <form class="entry" id="form-labo">
+          <div class="field"><label>Membre</label><select id="l-member" required></select></div>
+          <div class="field"><label>Fertilisant utilisé</label><input type="number" id="l-fertilisant" min="0" step="1" value="0"></div>
+          <div class="field"><label>Eau utilisée</label><input type="number" id="l-eau" min="0" step="1" value="0"></div>
+          <div class="field"><label>Graines de strawberry</label><input type="number" id="l-graines" min="0" step="1" value="0"></div>
+          <div class="field"><label>Pots utilisés</label><input type="number" id="l-pots" min="0" step="1" value="0"></div>
+          <div class="field"><label>Nombre de branches récoltées</label><input type="number" id="l-branche" min="1" step="1" value="1" required></div>
+          <div class="field"><label>Montant total gagné ($)</label><input type="number" id="l-montant" min="0" step="1" required></div>
+          <div class="field"><label>Résultat</label>
+            <select id="l-resultat"><option value="Réussite">✅ Réussite</option><option value="Échec">❌ Échec</option></select>
+          </div>
+          <div class="field" id="l-raison-wrap" style="display:none;"><label>Raison de l'échec</label><input type="text" id="l-raison" placeholder="optionnel"></div>
+          <div class="field"><label>Note</label><input type="text" id="l-note" placeholder="optionnel"></div>
+          <button class="submit" type="submit">Enregistrer la récolte</button>
+        </form>
+        <div class="note-hint" id="l-rate-hint"></div>
+      </div>
+      <div class="card">
+        <h3>Historique</h3>
+        <table>
+          <thead><tr><th>Membre</th><th>Branches</th><th>Fertilisant</th><th>Eau</th><th>Graines</th><th>Pots</th><th>Montant total</th><th>Résultat</th><th>Part membre</th><th>Date</th><th></th></tr></thead>
+          <tbody id="l-table"></tbody>
+        </table>
+        <div class="totals" id="l-totals"></div>
+        <div class="grand" id="l-grand"></div>
+      </div>
+    </div>
+    <!-- FLEECA -->
+    <div class="tabpanel" id="panel-fleeca">
+      <div class="card">
+        <h3>Nouveau braquage Fleeca</h3>
+        <form class="entry" id="form-fleeca" style="flex-direction:column;align-items:stretch;">
+          <div class="field">
+            <label>Membres participants</label>
+            <div class="member-checklist" id="fl-members"></div>
+          </div>
+          <div class="entry" style="margin-top:12px;">
+            <div class="field"><label>Montant total gagné ($)</label><input type="number" id="fl-montant" min="0" step="1" required></div>
+            <div class="field"><label>Résultat</label>
+              <select id="fl-resultat"><option value="Réussite">✅ Réussite</option><option value="Échec">❌ Échec</option></select>
+            </div>
+            <div class="field" id="fl-raison-wrap" style="display:none;"><label>Raison de l'échec</label><input type="text" id="fl-raison" placeholder="optionnel"></div>
+            <div class="field"><label>Note</label><input type="text" id="fl-note" placeholder="optionnel"></div>
+            <div class="field"><label>Date et heure (si passé)</label><input type="datetime-local" id="fl-date"></div>
+            <button class="submit" type="submit">Ajouter</button>
+          </div>
+        </form>
+        <div class="note-hint">L'argent va entièrement au groupe — aucune part individuelle. Compte pour 1 action dans le quota de chaque membre coché.</div>
+      </div>
+      <div class="card">
+        <h3>Historique</h3>
+        <table><thead><tr><th>Membres</th><th>Montant</th><th>Résultat</th><th>Note</th><th>Date</th><th></th></tr></thead><tbody id="fl-table"></tbody></table>
+        <div class="grand" id="fl-grand"></div>
+      </div>
+    </div>
+
+    <!-- ARMURERIE -->
+    <div class="tabpanel" id="panel-armurerie">
+      <div class="card">
+        <h3>Nouveau braquage Armurerie</h3>
+        <form class="entry" id="form-armurerie" style="flex-direction:column;align-items:stretch;">
+          <div class="field">
+            <label>Membres participants</label>
+            <div class="member-checklist" id="ar-members"></div>
+          </div>
+          <div class="entry" style="margin-top:12px;">
+            <div class="field"><label>Montant total gagné ($)</label><input type="number" id="ar-montant" min="0" step="1" required></div>
+            <div class="field"><label>Résultat</label>
+              <select id="ar-resultat"><option value="Réussite">✅ Réussite</option><option value="Échec">❌ Échec</option></select>
+            </div>
+            <div class="field" id="ar-raison-wrap" style="display:none;"><label>Raison de l'échec</label><input type="text" id="ar-raison" placeholder="optionnel"></div>
+            <div class="field"><label>Note</label><input type="text" id="ar-note" placeholder="optionnel"></div>
+            <div class="field"><label>Date et heure (si passé)</label><input type="datetime-local" id="ar-date"></div>
+            <button class="submit" type="submit">Ajouter</button>
+          </div>
+        </form>
+        <div class="note-hint">L'argent va entièrement au groupe — aucune part individuelle. Compte pour 1 action dans le quota de chaque membre coché.</div>
+      </div>
+      <div class="card">
+        <h3>Historique</h3>
+        <table><thead><tr><th>Membres</th><th>Montant</th><th>Résultat</th><th>Note</th><th>Date</th><th></th></tr></thead><tbody id="ar-table"></tbody></table>
+        <div class="grand" id="ar-grand"></div>
+      </div>
+    </div>
   </main>
 </div>
 
@@ -157,49 +218,13 @@
 <script>
   const membre = initShell('tracker', 'Tracker');
   if (membre) {
-    // Braquages de groupe : prefix, noeud Firebase, onglet, libellé, quota (clé config.quotas)
-    const BRAQUAGES = [
-      { prefix: 'bi', node: 'bijouteries', tab: 'bijouterie', label: 'Bijouterie', emoji: '💎', quota: 'bijouterie' },
-      { prefix: 'fl', node: 'fleecas',     tab: 'banque',     label: 'Banque',     emoji: '🏦', quota: 'banque' },
-      { prefix: 'ar', node: 'armureries',  tab: 'armurerie',  label: 'Armurerie',  emoji: '🔫', quota: 'armurerie' },
-    ];
-    document.getElementById('braquage-panels').innerHTML = BRAQUAGES.map(b => `
-      <div class="tabpanel" id="panel-${b.tab}">
-        <div class="card">
-          <h3>Nouveau braquage — ${b.label}</h3>
-          <form class="entry" id="form-${b.prefix}" style="flex-direction:column;align-items:stretch;">
-            <div class="field">
-              <label>Membres participants</label>
-              <div class="member-checklist" id="${b.prefix}-members"></div>
-            </div>
-            <div class="entry" style="margin-top:12px;">
-              <div class="field"><label>Montant total gagné ($)</label><input type="number" id="${b.prefix}-montant" min="0" step="1" required></div>
-              <div class="field"><label>Résultat</label>
-                <select id="${b.prefix}-resultat"><option value="Réussite">✅ Réussite</option><option value="Échec">❌ Échec</option></select>
-              </div>
-              <div class="field" id="${b.prefix}-raison-wrap" style="display:none;"><label>Raison de l'échec</label><input type="text" id="${b.prefix}-raison" placeholder="optionnel"></div>
-              <div class="field"><label>Note</label><input type="text" id="${b.prefix}-note" placeholder="optionnel"></div>
-              <div class="field"><label>Date et heure (si passé)</label><input type="datetime-local" id="${b.prefix}-date"></div>
-              <button class="submit" type="submit">Ajouter</button>
-            </div>
-          </form>
-          <div class="note-hint" id="${b.prefix}-hint"></div>
-        </div>
-        <div class="card">
-          <h3>Historique</h3>
-          <table><thead><tr><th>Membres</th><th>Montant</th><th>Résultat</th><th>Note</th><th>Date</th><th></th></tr></thead><tbody id="${b.prefix}-table"></tbody></table>
-          <div class="grand" id="${b.prefix}-grand"></div>
-        </div>
-      </div>`).join('');
-
     let membres = {};
-    let config = getConfig({});
+    let config = { taux_action_pct: 25, taux_cambriolage: 700, taux_pochon: 25, taux_branche: 10 };
     let activeWeekId = null;
-    let semaineFiltre = '';
-    let membreFiltre = '';
-    let lastActionsSnap = null, lastLabosSnap = null, lastRecoltesSnap = null, lastVentesSnap = null;
+    let semaineFiltre = ''; // '' = toutes les semaines (avant sélection)
+    let membreFiltre = ''; // '' = tous les membres
+    let lastActionsSnap = null, lastGofastSnap = null, lastVentesSnap = null, lastLabosSnap = null;
     const braquageRenders = {};
-
     db.ref('config/semaine_active_id').on('value', s => {
       activeWeekId = s.val();
       if (!document.getElementById('t-semaine').dataset.init) chargerSemaines();
@@ -216,12 +241,18 @@
       sel.value = activeWeekId || '';
       semaineFiltre = sel.value;
       rafraichirTout();
-      sel.addEventListener('change', () => { semaineFiltre = sel.value; rafraichirTout(); });
-      document.getElementById('t-membre-filtre').addEventListener('change', e => { membreFiltre = e.target.value; rafraichirTout(); });
+      sel.addEventListener('change', () => {
+        semaineFiltre = sel.value;
+        rafraichirTout();
+      });
+      document.getElementById('t-membre-filtre').addEventListener('change', e => {
+        membreFiltre = e.target.value;
+        rafraichirTout();
+      });
     }
 
     function rafraichirTout() {
-      renderActions(); renderLabo(); renderRecolte(); renderVente();
+      renderActions(); renderGofast(); renderVente(); renderLabo();
       Object.values(braquageRenders).forEach(fn => fn());
     }
 
@@ -234,7 +265,7 @@
       });
     });
 
-    ['a', 'l', 'v', ...BRAQUAGES.map(b => b.prefix)].forEach(prefix => {
+    ['a', 'g', 'v', 'l', 'fl', 'ar'].forEach(prefix => {
       document.getElementById(prefix + '-resultat').addEventListener('change', e => {
         document.getElementById(prefix + '-raison-wrap').style.display = e.target.value === 'Échec' ? 'block' : 'none';
       });
@@ -248,7 +279,7 @@
       const opts = listePourSelect
         .map(([id, m]) => `<option value="${id}">${gradeInfo(m.grade).emoji} ${m.prenom}</option>`)
         .join('') || '<option value="">Aucun membre — ajoute-le dans Admin</option>';
-      ['a-member', 'l-member', 'r-member', 'v-member'].forEach(sid => {
+      ['a-member', 'g-member', 'v-member', 'l-member'].forEach(sid => {
         const sel = document.getElementById(sid);
         const cur = sel.value;
         sel.innerHTML = opts;
@@ -257,8 +288,8 @@
       });
 
       const membresActifs = Object.entries(membres).filter(visible);
-      BRAQUAGES.forEach(b => {
-        const el = document.getElementById(b.prefix + '-members');
+      ['fl-members', 'ar-members'].forEach(cid => {
+        const el = document.getElementById(cid);
         const cochesAvant = new Set([...el.querySelectorAll('input:checked')].map(i => i.value));
         el.innerHTML = membresActifs.length === 0
           ? '<span class="empty">Aucun membre — ajoute-le dans Admin</span>'
@@ -267,6 +298,7 @@
             `).join('');
       });
 
+      // Filtre d'affichage par membre (visible à tous, sert juste à consulter l'historique)
       const selFiltre = document.getElementById('t-membre-filtre');
       const curFiltre = selFiltre.value;
       selFiltre.innerHTML = '<option value="">— Tous les membres —</option>' +
@@ -275,70 +307,44 @@
     }
 
     function renderHints() {
-      const q = config.quotas;
-      const taux = (n, unite) => n > 0 ? `Part membre : ${n} ${unite}.` : 'Part membre : pas encore de taux défini (Admin → Taux).';
-      document.getElementById('a-rate-hint').textContent =
-        `Cotisation : ${fmtMoney(q.cotisation)} par membre et par semaine. ` + (config.taux_action_pct > 0 ? `Part membre : ${config.taux_action_pct}% du montant.` : 'Part membre : pas encore de taux défini (Admin → Taux).') +
-        ` Le type "ATM" retire 1 unité du produit "ATM" dans le Stock, si il existe.`;
-      document.getElementById('l-rate-hint').textContent =
-        `Quota : ${q.labo} labos par membre et par semaine. 1 labo maximum par heure, 150 pochons par labo. ` +
-        `Meth = 150 champignons verts + 150 rouges. Cocaïne = 150 feuilles + 150 acide. Les ingrédients sont retirés du Stock s'ils existent. ` + taux(config.taux_labo, '$ par labo');
-      document.getElementById('r-rate-hint').textContent =
-        `Quota : ${q.recolte.toLocaleString('fr-FR')} récoltes par membre et par semaine, tous produits confondus. Les quantités sont ajoutées au Stock si le produit existe. ` + taux(config.taux_recolte, '$ par unité');
-      document.getElementById('v-rate-hint').textContent = `Les pochons vendus sont retirés du Stock s'ils y sont. ` + taux(config.taux_pochon, '$ par pochon vendu');
-      BRAQUAGES.forEach(b => {
-        document.getElementById(b.prefix + '-hint').textContent =
-          `Objectif du groupe : ${q[b.quota]} ${b.label.toLowerCase()}s par semaine. L'argent va entièrement au groupe, aucune part individuelle.`;
-      });
+      document.getElementById('a-rate-hint').textContent = `Taux actuel : ${config.taux_action_pct}% du montant total reversé au membre. Le type "ATM" retire automatiquement 1 unité du produit "ATM" dans le Stock (même en cas d'échec), si le produit existe.`;
+      document.getElementById('g-rate-hint').textContent = `Taux actuel : ${fmtMoney(config.taux_cambriolage)} par cambriolage (tarif fixe). Consomme 1 outil de crochetage par cambriolage (même en cas d'échec).`;
+      document.getElementById('v-rate-hint').textContent = `Taux actuel : ${fmtMoney(config.taux_pochon)} par pochon vendu (tarif fixe). Le produit est retiré du stock même en cas d'échec.`;
+      document.getElementById('l-rate-hint').textContent = `Taux actuel : ${fmtMoney(config.taux_branche)} par branche récoltée (tarif fixe). Les ingrédients saisis sont retirés du stock même en cas d'échec.`;
     }
 
-    function renderTotalsChips(elId, totals, fmt) {
+    function renderTotalsChips(elId, totals) {
       const el = document.getElementById(elId);
       const es = Object.entries(totals);
       el.innerHTML = es.length === 0 ? '' : es.map(([id, sum]) => {
         const m = membres[id];
         const g = m ? gradeInfo(m.grade) : null;
-        return `<div class="total-chip">${g ? g.emoji : '❓'} ${m ? m.prenom : '?'} — <b>${(fmt || fmtMoney)(sum)}</b></div>`;
+        return `<div class="total-chip">${g ? g.emoji : '❓'} ${m ? m.prenom : '?'} — <b>${fmtMoney(sum)}</b></div>`;
       }).join('');
-    }
-
-    const filtre = item => (!semaineFiltre || item.semaine_id === semaineFiltre) && (!membreFiltre || item.membre_id === membreFiltre);
-    const nomMembre = id => { const m = membres[id]; const g = m ? gradeInfo(m.grade) : null; return `${g ? g.emoji : '❓'} ${m ? m.prenom : 'Membre supprimé'}`; };
-    const cellResultat = r => r.resultat !== 'Échec' ? '✅ Réussite' : `❌ Échec${r.raison ? ' — ' + r.raison : ''}`;
-
-    // Ajuste le stock : premier produit dont le nom contient "motCle" (toutes catégories). Jamais bloquant.
-    async function ajusterStock(motCle, delta) {
-      try {
-        const stockSnap = await db.ref('stock').get();
-        for (const [catId, cat] of entries(stockSnap.val())) {
-          const prod = entries(cat.produits).find(([pid, p]) => (p.nom || '').toLowerCase().includes(motCle));
-          if (prod) {
-            const ref = db.ref(`stock/${catId}/produits/${prod[0]}/stock`);
-            const cur = (await ref.get()).val() || 0;
-            await ref.set(Math.max(0, cur + delta));
-            return;
-          }
-        }
-      } catch (err) { console.error('ajusterStock', err); }
     }
 
     // ---- ACTIONS ----
     function renderActions() {
       if (!lastActionsSnap) return;
-      const rows = entries(lastActionsSnap.val()).filter(([, item]) => filtre(item));
+      const rows = entries(lastActionsSnap.val()).filter(([, item]) => (!semaineFiltre || item.semaine_id === semaineFiltre) && (!membreFiltre || item.membre_id === membreFiltre));
       const tbody = document.getElementById('a-table');
       const totals = {}; let grand = 0;
       if (rows.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="empty">Aucune action enregistrée.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="empty">Aucune action enregistrée.</td></tr>`;
       } else {
         tbody.innerHTML = rows.slice().reverse().map(([id, a]) => {
-          if (a.resultat !== 'Échec') { totals[a.membre_id] = (totals[a.membre_id] || 0) + (a.montant || 0); grand += (a.montant || 0); }
+          const m = membres[a.membre_id];
+          const reussite = a.resultat !== 'Échec';
+          const part = reussite ? (a.montant || 0) * (config.taux_action_pct / 100) : 0;
+          totals[a.membre_id] = (totals[a.membre_id] || 0) + (a.montant || 0);
+          grand += (a.montant || 0);
+          const g = m ? gradeInfo(m.grade) : null;
           return `<tr>
-            <td>${nomMembre(a.membre_id)}</td>
+            <td>${g ? g.emoji : '❓'} ${m ? m.prenom : 'Membre supprimé'}</td>
             <td>${a.type || '—'}</td>
             <td>${fmtMoney(a.montant)}</td>
-            <td>${cellResultat(a)}</td>
-            <td class="amt">${fmtMoney(partMembre(config, 'actions', a))}</td>
+            <td>${reussite ? '✅ Réussite' : `❌ Échec${a.raison ? ' — ' + a.raison : ''}`}</td>
+            <td class="amt">${fmtMoney(part)}</td>
             <td>${a.note || '—'}</td>
             <td>${fmtDateHeure(a.date)}</td>
             <td><button class="del" data-id="${id}" data-type="actions">✕</button></td>
@@ -346,10 +352,15 @@
         }).join('');
       }
       renderTotalsChips('a-totals', totals);
-      document.getElementById('a-grand').textContent = 'Total ramené au groupe : ' + fmtMoney(grand);
+      document.getElementById('a-grand').textContent = 'Total réel gagné (groupe) : ' + fmtMoney(grand);
     }
     db.ref('actions').on('value', snap => { lastActionsSnap = snap; renderActions(); });
 
+    // Types d'action configurables dans Admin → Types d'action
+    const TYPES_ACTION_DEFAUT = [
+      { emoji: '🏧', nom: 'ATM' }, { emoji: '🏠', nom: 'Cambu' }, { emoji: '📦', nom: 'Conteneur' },
+      { emoji: '🏪', nom: 'Supérette' }, { emoji: '⛽', nom: 'LTD' }, { emoji: '🚗', nom: 'Go Fast' }
+    ];
     db.ref('config/types_action').on('value', snap => {
       const v = snap.val();
       const types = v ? Object.values(v) : TYPES_ACTION_DEFAUT;
@@ -373,7 +384,7 @@
       const note = document.getElementById('a-note').value.trim();
       if (!membre_id || isNaN(montant)) return;
       db.ref('actions/' + uid()).set({ membre_id, type, montant, resultat, raison, note, date: new Date().toISOString(), par: membre.id, semaine_id: activeWeekId });
-      if (type === 'ATM') ajusterStock('atm', -1);
+      if (type === 'ATM') deduireStockNomme('atm');
       document.getElementById('a-montant').value = '';
       document.getElementById('a-note').value = '';
       document.getElementById('a-raison').value = '';
@@ -381,137 +392,122 @@
       document.getElementById('a-resultat').value = 'Réussite';
     });
 
-    // ---- LABOS ----
-    document.getElementById('l-produit').innerHTML = Object.entries(LABOS_PRODUITS)
-      .map(([nom, p]) => `<option value="${nom}">${p.emoji} ${nom}</option>`).join('');
-    let pochonsModifie = false;
-    document.getElementById('l-pochons').addEventListener('input', () => { pochonsModifie = true; });
-    function majPochonsAuto() {
-      if (pochonsModifie) return;
-      const p = LABOS_PRODUITS[document.getElementById('l-produit').value];
-      const n = parseInt(document.getElementById('l-qty').value, 10) || 0;
-      document.getElementById('l-pochons').value = p ? p.pochons * n : 0;
-    }
-    document.getElementById('l-qty').addEventListener('input', majPochonsAuto);
-    document.getElementById('l-produit').addEventListener('change', majPochonsAuto);
-
-    function renderLabo() {
-      if (!lastLabosSnap) return;
-      const rows = entries(lastLabosSnap.val()).filter(([, item]) => filtre(item));
-      const tbody = document.getElementById('l-table');
-      const totals = {}; let grandLabos = 0, grandPochons = 0;
-      if (rows.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="10" class="empty">Aucun labo enregistré.</td></tr>`;
-      } else {
-        tbody.innerHTML = rows.slice().reverse().map(([id, l]) => {
-          if (l.resultat !== 'Échec') { totals[l.membre_id] = (totals[l.membre_id] || 0) + (l.labos_qty || 0); grandLabos += (l.labos_qty || 0); grandPochons += (l.pochons || 0); }
-          const p = LABOS_PRODUITS[l.produit];
-          return `<tr>
-            <td>${nomMembre(l.membre_id)}</td>
-            <td>${p ? p.emoji : ''} ${l.produit || '—'}</td>
-            <td>${l.labos_qty || 0}</td>
-            <td>${l.pochons || 0}</td>
-            <td>${fmtMoney(l.montant)}</td>
-            <td>${cellResultat(l)}</td>
-            <td class="amt">${fmtMoney(partMembre(config, 'labos', l))}</td>
-            <td>${l.note || '—'}</td>
-            <td>${fmtDateHeure(l.date)}</td>
-            <td><button class="del" data-id="${id}" data-type="labos">✕</button></td>
-          </tr>`;
-        }).join('');
+    // Retire 1 unité du premier produit du Stock dont le nom contient "motCle" (toutes catégories confondues)
+    async function deduireStockNomme(motCle) {
+      try {
+        const stockSnap = await db.ref('stock').get();
+        const cats = entries(stockSnap.val());
+        for (const [catId, cat] of cats) {
+          const produits = entries(cat.produits);
+          const prod = produits.find(([pid, p]) => (p.nom || '').toLowerCase().includes(motCle));
+          if (prod) {
+            const [pid] = prod;
+            const ref = db.ref(`stock/${catId}/produits/${pid}/stock`);
+            const cur = (await ref.get()).val() || 0;
+            await ref.set(Math.max(0, cur - 1));
+            return;
+          }
+        }
+      } catch (err) {
+        console.error('deduireStockNomme', err); // jamais bloquant
       }
-      renderTotalsChips('l-totals', totals, n => n + ' labo' + (n > 1 ? 's' : ''));
-      document.getElementById('l-grand').textContent = `Total : ${grandLabos} labos · ${grandPochons.toLocaleString('fr-FR')} pochons`;
     }
-    db.ref('labos').on('value', snap => { lastLabosSnap = snap; renderLabo(); });
 
-    document.getElementById('form-labo').addEventListener('submit', e => {
-      e.preventDefault();
-      const membre_id = document.getElementById('l-member').value;
-      const produit = document.getElementById('l-produit').value;
-      const labos_qty = parseInt(document.getElementById('l-qty').value, 10);
-      const pochons = parseInt(document.getElementById('l-pochons').value, 10) || 0;
-      const montant = parseFloat(document.getElementById('l-montant').value) || 0;
-      const resultat = document.getElementById('l-resultat').value;
-      const raison = document.getElementById('l-raison').value.trim();
-      const note = document.getElementById('l-note').value.trim();
-      if (!membre_id || isNaN(labos_qty) || labos_qty < 1) return;
-      db.ref('labos/' + uid()).set({ membre_id, produit, labos_qty, pochons, montant, resultat, raison, note, date: new Date().toISOString(), par: membre.id, semaine_id: activeWeekId });
-      const p = LABOS_PRODUITS[produit];
-      if (p) p.ingredients.forEach(([match, parLabo]) => ajusterStock(match, -(parLabo * labos_qty))); // même en cas d'échec
-      pochonsModifie = false;
-      document.getElementById('l-qty').value = '1';
-      majPochonsAuto();
-      document.getElementById('l-montant').value = '0';
-      document.getElementById('l-note').value = '';
-      document.getElementById('l-raison').value = '';
-      document.getElementById('l-raison-wrap').style.display = 'none';
-      document.getElementById('l-resultat').value = 'Réussite';
-    });
-
-    // ---- RÉCOLTES ----
-    document.getElementById('r-produit').innerHTML = RECOLTE_PRODUITS
-      .map(p => `<option value="${p.nom}">${p.emoji} ${p.nom}</option>`).join('');
-
-    function renderRecolte() {
-      if (!lastRecoltesSnap) return;
-      const rows = entries(lastRecoltesSnap.val()).filter(([, item]) => filtre(item));
-      const tbody = document.getElementById('r-table');
+    // ---- CAMBRIOLAGE ----
+    function renderGofast() {
+      if (!lastGofastSnap) return;
+      const rows = entries(lastGofastSnap.val()).filter(([, item]) => (!semaineFiltre || item.semaine_id === semaineFiltre) && (!membreFiltre || item.membre_id === membreFiltre));
+      const tbody = document.getElementById('g-table');
       const totals = {}; let grand = 0;
       if (rows.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="empty">Aucune récolte enregistrée.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="empty">Aucun cambriolage enregistré.</td></tr>`;
       } else {
-        tbody.innerHTML = rows.slice().reverse().map(([id, r]) => {
-          totals[r.membre_id] = (totals[r.membre_id] || 0) + (r.qty || 0); grand += (r.qty || 0);
-          const p = RECOLTE_PRODUITS.find(x => x.nom === r.produit);
+        tbody.innerHTML = rows.slice().reverse().map(([id, gf]) => {
+          const m = membres[gf.membre_id];
+          const reussite = gf.resultat !== 'Échec';
+          const part = reussite ? (gf.count || 0) * config.taux_cambriolage : 0;
+          totals[gf.membre_id] = (totals[gf.membre_id] || 0) + (gf.montant || 0);
+          grand += (gf.montant || 0);
+          const g = m ? gradeInfo(m.grade) : null;
           return `<tr>
-            <td>${nomMembre(r.membre_id)}</td>
-            <td>${p ? p.emoji : ''} ${r.produit || '—'}</td>
-            <td>${(r.qty || 0).toLocaleString('fr-FR')}</td>
-            <td class="amt">${fmtMoney(partMembre(config, 'recoltes', r))}</td>
-            <td>${r.note || '—'}</td>
-            <td>${fmtDateHeure(r.date)}</td>
-            <td><button class="del" data-id="${id}" data-type="recoltes">✕</button></td>
+            <td>${g ? g.emoji : '❓'} ${m ? m.prenom : 'Membre supprimé'}</td>
+            <td>🏠 ${gf.count}</td>
+            <td>${fmtMoney(gf.montant)}</td>
+            <td>${reussite ? '✅ Réussite' : `❌ Échec${gf.raison ? ' — ' + gf.raison : ''}`}</td>
+            <td class="amt">${fmtMoney(part)}</td>
+            <td>${gf.note || '—'}</td>
+            <td>${fmtDateHeure(gf.date)}</td>
+            <td><button class="del" data-id="${id}" data-type="cambriolages">✕</button></td>
           </tr>`;
         }).join('');
       }
-      renderTotalsChips('r-totals', totals, n => n.toLocaleString('fr-FR'));
-      document.getElementById('r-grand').textContent = 'Total récolté : ' + grand.toLocaleString('fr-FR');
+      renderTotalsChips('g-totals', totals);
+      document.getElementById('g-grand').textContent = 'Total réel gagné (groupe) : ' + fmtMoney(grand);
     }
-    db.ref('recoltes').on('value', snap => { lastRecoltesSnap = snap; renderRecolte(); });
+    db.ref('cambriolages').on('value', snap => { lastGofastSnap = snap; renderGofast(); });
 
-    document.getElementById('form-recolte').addEventListener('submit', e => {
+    document.getElementById('form-gofast').addEventListener('submit', e => {
       e.preventDefault();
-      const membre_id = document.getElementById('r-member').value;
-      const produit = document.getElementById('r-produit').value;
-      const qty = parseInt(document.getElementById('r-qty').value, 10);
-      const note = document.getElementById('r-note').value.trim();
-      if (!membre_id || isNaN(qty) || qty < 1) return;
-      db.ref('recoltes/' + uid()).set({ membre_id, produit, qty, note, resultat: 'Réussite', date: new Date().toISOString(), par: membre.id, semaine_id: activeWeekId });
-      const p = RECOLTE_PRODUITS.find(x => x.nom === produit);
-      if (p) ajusterStock(p.match, qty);
-      document.getElementById('r-qty').value = '1';
-      document.getElementById('r-note').value = '';
+      const membre_id = document.getElementById('g-member').value;
+      const count = parseInt(document.getElementById('g-count').value, 10);
+      const montant = parseFloat(document.getElementById('g-montant').value);
+      const resultat = document.getElementById('g-resultat').value;
+      const raison = document.getElementById('g-raison').value.trim();
+      const note = document.getElementById('g-note').value.trim();
+      if (!membre_id || isNaN(count) || count < 1 || isNaN(montant)) return;
+      db.ref('cambriolages/' + uid()).set({ membre_id, count, montant, resultat, raison, note, date: new Date().toISOString(), par: membre.id, semaine_id: activeWeekId });
+      deduireOutilCrochetage(count);
+      document.getElementById('g-count').value = '1';
+      document.getElementById('g-montant').value = '';
+      document.getElementById('g-note').value = '';
+      document.getElementById('g-raison').value = '';
+      document.getElementById('g-raison-wrap').style.display = 'none';
+      document.getElementById('g-resultat').value = 'Réussite';
     });
 
-    // ---- VENTE (pochons) ----
+    // Retire "count" outils de crochetage du stock (catégorie "Matériel"), sans jamais bloquer l'enregistrement
+    async function deduireOutilCrochetage(count) {
+      try {
+        const stockSnap = await db.ref('stock').get();
+        const cats = entries(stockSnap.val());
+        const catMateriel = cats.find(([id, c]) => (c.nom || '').toLowerCase().includes('mat'));
+        if (!catMateriel) return;
+        const [catId, cat] = catMateriel;
+        const produits = entries(cat.produits);
+        const prod = produits.find(([pid, p]) => (p.nom || '').toLowerCase().includes('crochet'));
+        if (!prod) return;
+        const [pid] = prod;
+        const ref = db.ref(`stock/${catId}/produits/${pid}/stock`);
+        const cur = (await ref.get()).val() || 0;
+        await ref.set(Math.max(0, cur - count));
+      } catch (err) {
+        console.error('deduireOutilCrochetage', err); // jamais bloquant
+      }
+    }
+
+    // ---- VENTE ----
     function renderVente() {
       if (!lastVentesSnap) return;
-      const rows = entries(lastVentesSnap.val()).filter(([, item]) => filtre(item));
+      const rows = entries(lastVentesSnap.val()).filter(([, item]) => (!semaineFiltre || item.semaine_id === semaineFiltre) && (!membreFiltre || item.membre_id === membreFiltre));
       const tbody = document.getElementById('v-table');
       const totals = {}; let grand = 0;
       if (rows.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="9" class="empty">Aucune vente enregistrée.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" class="empty">Aucune vente enregistrée.</td></tr>`;
       } else {
         tbody.innerHTML = rows.slice().reverse().map(([id, v]) => {
-          if (v.resultat !== 'Échec') { totals[v.membre_id] = (totals[v.membre_id] || 0) + (v.montant || 0); grand += (v.montant || 0); }
+          const m = membres[v.membre_id];
+          const reussite = v.resultat !== 'Échec';
+          const part = reussite ? (v.qty || 0) * config.taux_pochon : 0;
+          totals[v.membre_id] = (totals[v.membre_id] || 0) + (v.montant || 0);
+          grand += (v.montant || 0);
+          const g = m ? gradeInfo(m.grade) : null;
           return `<tr>
-            <td>${nomMembre(v.membre_id)}</td>
+            <td>${g ? g.emoji : '❓'} ${m ? m.prenom : 'Membre supprimé'}</td>
             <td>${v.produit_nom || '—'}${v.purete ? ' — ' + (v.purete === 'brut' ? 'Non purifié' : v.purete + '%') : ''}</td>
             <td>💊 ${v.qty}</td>
             <td>${fmtMoney(v.montant)}</td>
-            <td>${cellResultat(v)}</td>
-            <td class="amt">${fmtMoney(partMembre(config, 'ventes', v))}</td>
+            <td>${reussite ? '✅ Réussite' : `❌ Échec${v.raison ? ' — ' + v.raison : ''}`}</td>
+            <td class="amt">${fmtMoney(part)}</td>
             <td>${v.note || '—'}</td>
             <td>${fmtDateHeure(v.date)}</td>
             <td><button class="del" data-id="${id}" data-type="ventes">✕</button></td>
@@ -519,7 +515,7 @@
         }).join('');
       }
       renderTotalsChips('v-totals', totals);
-      document.getElementById('v-grand').textContent = 'Total gagné (groupe) : ' + fmtMoney(grand);
+      document.getElementById('v-grand').textContent = 'Total réel gagné (groupe) : ' + fmtMoney(grand);
     }
     db.ref('ventes').on('value', snap => { lastVentesSnap = snap; renderVente(); });
 
@@ -560,7 +556,6 @@
     });
 
     // remplit le select produit (catégorie Stock contenant "drogue", sinon toutes les catégories)
-    let PRODUITS_PURIFIABLES = {};
     db.ref('stock').on('value', snap => {
       const cats = entries(snap.val());
       const sel = document.getElementById('v-produit');
@@ -577,24 +572,116 @@
       if (cur) sel.value = cur;
       majPureteVente();
     });
+    let PRODUITS_PURIFIABLES = {};
     function majPureteVente() {
       document.getElementById('v-purete-wrap').style.display = PRODUITS_PURIFIABLES[document.getElementById('v-produit').value] ? '' : 'none';
     }
     document.getElementById('v-produit').addEventListener('change', majPureteVente);
 
-    // ---- BIJOUTERIE / BANQUE / ARMURERIE (braquages de groupe, aucune part individuelle) ----
-    BRAQUAGES.forEach(b => {
+    // ---- LABO ----
+    function renderLabo() {
+      if (!lastLabosSnap) return;
+      const rows = entries(lastLabosSnap.val()).filter(([, item]) => (!semaineFiltre || item.semaine_id === semaineFiltre) && (!membreFiltre || item.membre_id === membreFiltre));
+      const tbody = document.getElementById('l-table');
+      const totals = {}; let grand = 0;
+      if (rows.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="11" class="empty">Aucune récolte enregistrée.</td></tr>`;
+      } else {
+        tbody.innerHTML = rows.slice().reverse().map(([id, l]) => {
+          const m = membres[l.membre_id];
+          const reussite = l.resultat !== 'Échec';
+          const part = reussite ? (l.branche_qty || 0) * (config.taux_branche || 0) : 0;
+          totals[l.membre_id] = (totals[l.membre_id] || 0) + (l.montant || 0);
+          grand += (l.montant || 0);
+          const g = m ? gradeInfo(m.grade) : null;
+          return `<tr>
+            <td>${g ? g.emoji : '❓'} ${m ? m.prenom : 'Membre supprimé'}</td>
+            <td>🌿 ${l.branche_qty || 0}</td>
+            <td>${l.fertilisant || 0}</td>
+            <td>${l.eau || 0}</td>
+            <td>${l.graines || 0}</td>
+            <td>${l.pots || 0}</td>
+            <td>${fmtMoney(l.montant)}</td>
+            <td>${reussite ? '✅ Réussite' : `❌ Échec${l.raison ? ' — ' + l.raison : ''}`}</td>
+            <td class="amt">${fmtMoney(part)}</td>
+            <td>${fmtDateHeure(l.date)}</td>
+            <td><button class="del" data-id="${id}" data-type="labos">✕</button></td>
+          </tr>`;
+        }).join('');
+      }
+      renderTotalsChips('l-totals', totals);
+      document.getElementById('l-grand').textContent = 'Total réel gagné (groupe) : ' + fmtMoney(grand);
+    }
+    db.ref('labos').on('value', snap => { lastLabosSnap = snap; renderLabo(); });
+
+    // Retire au mieux les quantités saisies du stock (catégorie "Labo"), sans jamais bloquer l'enregistrement
+    async function deduireStockLabo({ fertilisant, eau, graines, pots }) {
+      try {
+        const stockSnap = await db.ref('stock').get();
+        const cats = entries(stockSnap.val());
+        const catLabo = cats.find(([id, c]) => (c.nom || '').toLowerCase().includes('labo'));
+        if (!catLabo) return;
+        const [catId, cat] = catLabo;
+        const produits = entries(cat.produits);
+        const conso = [
+          { match: 'fertilisant', qty: fertilisant },
+          { match: 'eau', qty: eau },
+          { match: 'graine', qty: graines },
+          { match: 'pot', qty: pots },
+        ];
+        for (const c of conso) {
+          if (!c.qty) continue;
+          const prod = produits.find(([pid, p]) => (p.nom || '').toLowerCase().includes(c.match));
+          if (!prod) continue;
+          const [pid, p] = prod;
+          const ref = db.ref(`stock/${catId}/produits/${pid}/stock`);
+          const cur = (await ref.get()).val() || 0;
+          await ref.set(Math.max(0, cur - c.qty));
+        }
+      } catch (err) {
+        console.error('deduireStockLabo', err); // jamais bloquant
+      }
+    }
+
+    document.getElementById('form-labo').addEventListener('submit', e => {
+      e.preventDefault();
+      const membre_id = document.getElementById('l-member').value;
+      const fertilisant = parseInt(document.getElementById('l-fertilisant').value, 10) || 0;
+      const eau = parseInt(document.getElementById('l-eau').value, 10) || 0;
+      const graines = parseInt(document.getElementById('l-graines').value, 10) || 0;
+      const pots = parseInt(document.getElementById('l-pots').value, 10) || 0;
+      const branche_qty = parseInt(document.getElementById('l-branche').value, 10);
+      const montant = parseFloat(document.getElementById('l-montant').value);
+      const resultat = document.getElementById('l-resultat').value;
+      const raison = document.getElementById('l-raison').value.trim();
+      const note = document.getElementById('l-note').value.trim();
+      if (!membre_id || isNaN(branche_qty) || branche_qty < 1 || isNaN(montant)) return;
+      db.ref('labos/' + uid()).set({
+        membre_id, fertilisant, eau, graines, pots, branche_qty, montant, resultat, raison, note,
+        date: new Date().toISOString(), par: membre.id, semaine_id: activeWeekId
+      });
+      deduireStockLabo({ fertilisant, eau, graines, pots });
+      document.getElementById('form-labo').reset();
+      document.getElementById('l-branche').value = '1';
+      document.getElementById('l-montant').value = '';
+      document.getElementById('l-raison-wrap').style.display = 'none';
+      document.getElementById('l-resultat').value = 'Réussite';
+    });
+
+    // ---- FLEECA / ARMURERIE (braquages collectifs, aucune part individuelle) ----
+    function setupBraquage(prefix, nodeName, label) {
       let lastSnap = null;
       function render() {
         if (!lastSnap) return;
         const rows = entries(lastSnap.val()).filter(([, item]) => (!semaineFiltre || item.semaine_id === semaineFiltre) && (!membreFiltre || (item.membres_ids || []).includes(membreFiltre)));
-        const tbody = document.getElementById(b.prefix + '-table');
+        const tbody = document.getElementById(prefix + '-table');
         let grand = 0;
         if (rows.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="6" class="empty">Aucun braquage ${b.label.toLowerCase()} enregistré.</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="6" class="empty">Aucun braquage ${label} enregistré.</td></tr>`;
         } else {
           tbody.innerHTML = rows.slice().reverse().map(([id, r]) => {
-            if (r.resultat !== 'Échec') grand += (r.montant || 0);
+            const reussite = r.resultat !== 'Échec';
+            grand += (r.montant || 0);
             const noms = (r.membres_ids || []).map(mid => {
               const m = membres[mid];
               return m ? `${gradeInfo(m.grade).emoji} ${m.prenom}` : null;
@@ -602,42 +689,49 @@
             return `<tr>
               <td>${noms}</td>
               <td class="amt">${fmtMoney(r.montant)}</td>
-              <td>${cellResultat(r)}</td>
+              <td>${reussite ? '✅ Réussite' : `❌ Échec${r.raison ? ' — ' + r.raison : ''}`}</td>
               <td>${r.note || '—'}</td>
               <td>${fmtDateHeure(r.date)}</td>
-              <td><button class="del" data-id="${id}" data-type="${b.node}">✕</button></td>
+              <td><button class="del" data-id="${id}" data-type="${nodeName}">✕</button></td>
             </tr>`;
           }).join('');
         }
-        document.getElementById(b.prefix + '-grand').textContent = 'Total gagné (groupe) : ' + fmtMoney(grand);
+        document.getElementById(prefix + '-grand').textContent = 'Total réel gagné (groupe) : ' + fmtMoney(grand);
       }
-      braquageRenders[b.prefix] = render;
-      db.ref(b.node).on('value', snap => { lastSnap = snap; render(); });
+      braquageRenders[prefix] = render;
+      db.ref(nodeName).on('value', snap => { lastSnap = snap; render(); });
 
-      document.getElementById('form-' + b.prefix).addEventListener('submit', e => {
+      document.getElementById('form-' + (prefix === 'fl' ? 'fleeca' : 'armurerie')).addEventListener('submit', e => {
         e.preventDefault();
-        const membres_ids = [...document.querySelectorAll(`#${b.prefix}-members input:checked`)].map(i => i.value);
-        const montant = parseFloat(document.getElementById(b.prefix + '-montant').value);
-        const resultat = document.getElementById(b.prefix + '-resultat').value;
-        const raison = document.getElementById(b.prefix + '-raison').value.trim();
-        const note = document.getElementById(b.prefix + '-note').value.trim();
+        const membres_ids = [...document.querySelectorAll(`#${prefix}-members input:checked`)].map(i => i.value);
+        const montant = parseFloat(document.getElementById(prefix + '-montant').value);
+        const resultat = document.getElementById(prefix + '-resultat').value;
+        const raison = document.getElementById(prefix + '-raison').value.trim();
+        const note = document.getElementById(prefix + '-note').value.trim();
         if (membres_ids.length === 0 || isNaN(montant)) return;
-        const dateSaisie = document.getElementById(b.prefix + '-date').value;
+        const dateSaisie = document.getElementById(prefix + '-date').value;
         const dateBraquage = dateSaisie ? new Date(dateSaisie).toISOString() : new Date().toISOString();
-        db.ref(b.node + '/' + uid()).set({ membres_ids, montant, resultat, raison, note, date: dateBraquage, par: membre.id, semaine_id: activeWeekId });
-        document.getElementById(b.prefix + '-montant').value = '';
-        document.getElementById(b.prefix + '-note').value = '';
-        document.getElementById(b.prefix + '-date').value = '';
-        document.getElementById(b.prefix + '-raison').value = '';
-        document.getElementById(b.prefix + '-raison-wrap').style.display = 'none';
-        document.getElementById(b.prefix + '-resultat').value = 'Réussite';
+        db.ref(nodeName + '/' + uid()).set({
+          membres_ids, montant, resultat, raison, note,
+          date: dateBraquage, par: membre.id, semaine_id: activeWeekId
+        });
+        document.getElementById(prefix + '-montant').value = '';
+        document.getElementById(prefix + '-note').value = '';
+        document.getElementById(prefix + '-date').value = '';
+        document.getElementById(prefix + '-raison').value = '';
+        document.getElementById(prefix + '-raison-wrap').style.display = 'none';
+        document.getElementById(prefix + '-resultat').value = 'Réussite';
       });
-    });
+    }
+    setupBraquage('fl', 'fleecas', 'Fleeca');
+    setupBraquage('ar', 'armureries', 'Armurerie');
 
-    // ---- suppression (déléguée) ----
+    // ---- delete (délégué) ----
     document.body.addEventListener('click', e => {
       if (e.target.classList.contains('del')) {
-        db.ref(e.target.dataset.type + '/' + e.target.dataset.id).remove();
+        const id = e.target.dataset.id;
+        const type = e.target.dataset.type;
+        db.ref(type + '/' + id).remove();
       }
     });
 
@@ -645,12 +739,15 @@
     db.ref('membres').on('value', snap => {
       membres = Object.fromEntries(entries(snap.val()));
       fillMemberSelects();
-      rafraichirTout();
+      renderActions();
+      renderGofast();
+      renderVente();
+      renderLabo();
+      Object.values(braquageRenders).forEach(fn => fn());
     });
     db.ref('config').on('value', snap => {
-      config = getConfig(snap.val());
+      config = Object.assign({ taux_action_pct: 25, taux_cambriolage: 700, taux_pochon: 25, taux_branche: 10 }, snap.val() || {});
       renderHints();
-      rafraichirTout();
     });
   }
 </script>

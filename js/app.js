@@ -99,9 +99,9 @@ function toast(msg) {
   setTimeout(() => el.remove(), 2600);
 }
 
-// peut payer / valider un blanchiment : Fondateur, admin, Organisation, Lead ou Co Lead (ordre <= 3)
+// peut payer / valider un blanchiment : fondateur, admin, ou grade Lead → Sergent (ordre <= 5)
 function canManage(membre) {
-  return isAdmin(membre) || gradeInfo(membre.grade).ordre <= 3;
+  return isAdmin(membre) || gradeInfo(membre.grade).ordre <= 5;
 }
 
 // Renvoie le dimanche 19h le plus récent (passé ou en cours), en heure locale.
@@ -176,25 +176,14 @@ async function ensureActiveWeek() {
   return finalSnap.val() || newId;
 }
 
-// Part due à un membre pour une saisie (selon les taux de Admin → Taux, 0 tant que rien n'est renseigné)
-function partMembre(cfg, kind, item) {
-  if (item.resultat === 'Échec') return 0;
-  if (kind === 'actions')  return (item.montant || 0) * ((cfg.taux_action_pct || 0) / 100);
-  if (kind === 'labos')    return (item.labos_qty || 0) * (cfg.taux_labo || 0);
-  if (kind === 'recoltes') return (item.qty || 0) * (cfg.taux_recolte || 0);
-  if (kind === 'ventes')   return (item.qty || 0) * (cfg.taux_pochon || 0);
-  return 0;
-}
-
 // Calcule le solde d'argent sale / propre depuis toutes les sources Firebase
 async function computeSoldes() {
-  const [aSnap, lSnap, rSnap, vSnap, biSnap, flSnap, arSnap, txSnap, taxSnap, cSnap, argSaleSnap, argPropreSnap, blanchSnap, payeSnap] = await Promise.all([
+  const [aSnap, gSnap, vSnap, lSnap, flSnap, arSnap, txSnap, taxSnap, cSnap, argSaleSnap, argPropreSnap, blanchSnap, payeSnap] = await Promise.all([
     db.ref('actions').get(),
-    db.ref('labos').get(),
-    db.ref('recoltes').get(),
+    db.ref('cambriolages').get(),
     db.ref('ventes').get(),
-    db.ref('bijouteries').get(),
-    db.ref('fleecas').get(), // = Banques
+    db.ref('labos').get(),
+    db.ref('fleecas').get(),
     db.ref('armureries').get(),
     db.ref('transactions').get(),
     db.ref('taxes').get(),
@@ -204,28 +193,41 @@ async function computeSoldes() {
     db.ref('blanchiments').get(),
     db.ref('payes').get(),
   ]);
-  const cfg = getConfig(cSnap.val());
+  const cfg = Object.assign({ taux_action_pct: 25, taux_cambriolage: 700, taux_pochon: 25, taux_branche: 10 }, cSnap.val() || {});
 
   let solde_sale = 0, solde_propre = 0;
-  const parMembre = {}; // part due par membre, avant paye
-  const ajoute = (mid, part) => { if (part) parMembre[mid] = (parMembre[mid] || 0) + part; };
+  const parMembre = {}; // part due (commission) par membre, avant paye
 
   entries(aSnap.val()).filter(([id, a]) => a.resultat !== 'Échec').forEach(([id, a]) => {
-    solde_sale += a.montant || 0; // le montant total va au groupe
-    ajoute(a.membre_id, partMembre(cfg, 'actions', a));
+    const montant = a.montant || 0;
+    solde_sale += montant; // le montant total va au groupe
+    const part = montant * (cfg.taux_action_pct / 100);
+    parMembre[a.membre_id] = (parMembre[a.membre_id] || 0) + part;
+  });
+  entries(gSnap.val()).filter(([id, g]) => g.resultat !== 'Échec').forEach(([id, g]) => {
+    const montant = g.montant || 0;
+    solde_propre += montant; // le montant total va au groupe, en propre
+    const part = (g.count || 0) * cfg.taux_cambriolage; // part du membre = tarif fixe
+    parMembre[g.membre_id] = (parMembre[g.membre_id] || 0) + part;
+  });
+  entries(vSnap.val()).filter(([id, v]) => v.resultat !== 'Échec').forEach(([id, v]) => {
+    const montant = v.montant || 0;
+    solde_sale += montant;
+    const part = (v.qty || 0) * cfg.taux_pochon;
+    parMembre[v.membre_id] = (parMembre[v.membre_id] || 0) + part;
   });
   entries(lSnap.val()).filter(([id, l]) => l.resultat !== 'Échec').forEach(([id, l]) => {
-    solde_sale += l.montant || 0; // revente éventuelle saisie sur le labo
-    ajoute(l.membre_id, partMembre(cfg, 'labos', l));
+    const montant = l.montant || 0;
+    solde_sale += montant;
+    const part = (l.branche_qty || 0) * (cfg.taux_branche || 0);
+    parMembre[l.membre_id] = (parMembre[l.membre_id] || 0) + part;
   });
-  entries(rSnap.val()).forEach(([id, r]) => ajoute(r.membre_id, partMembre(cfg, 'recoltes', r)));
-  entries(vSnap.val()).filter(([id, v]) => v.resultat !== 'Échec').forEach(([id, v]) => {
-    solde_sale += v.montant || 0; // vente de pochons : l'argent va au groupe
-    ajoute(v.membre_id, partMembre(cfg, 'ventes', v));
+  // Fleeca / Armurerie : tout va au groupe, aucune part individuelle
+  entries(flSnap.val()).filter(([id, r]) => r.resultat !== 'Échec').forEach(([id, r]) => {
+    solde_sale += r.montant || 0;
   });
-  // Bijouterie / Banque / Armurerie : tout va au groupe, aucune part individuelle
-  [biSnap, flSnap, arSnap].forEach(snap => {
-    entries(snap.val()).filter(([id, r]) => r.resultat !== 'Échec').forEach(([id, r]) => { solde_sale += r.montant || 0; });
+  entries(arSnap.val()).filter(([id, r]) => r.resultat !== 'Échec').forEach(([id, r]) => {
+    solde_sale += r.montant || 0;
   });
 
   // Transactions : une vente fait rentrer l'argent du groupe, un achat en fait sortir
@@ -248,13 +250,15 @@ async function computeSoldes() {
     solde_propre += m.type === 'Sortie' ? -(m.montant || 0) : (m.montant || 0);
   });
 
-  entries(blanchSnap.val()).forEach(([id, b]) => {
+  const blanchiments = entries(blanchSnap.val());
+  blanchiments.forEach(([id, b]) => {
     solde_sale -= (b.montant_sale || 0);
     solde_propre += (b.montant_propre || 0);
   });
 
+  const payes = entries(payeSnap.val());
   const payeParMembre = {};
-  entries(payeSnap.val()).forEach(([id, p]) => {
+  payes.forEach(([id, p]) => {
     solde_sale -= (p.montant || 0);
     payeParMembre[p.membre_id] = (payeParMembre[p.membre_id] || 0) + (p.montant || 0);
   });
@@ -273,27 +277,39 @@ async function computeSoldes() {
 // Permet de payer une semaine passée même si elle est bloquée.
 // ------------------------------------------------------------
 async function computeGainsSemaine(semaineId) {
-  const [aSnap, lSnap, rSnap, vSnap, cSnap, payeSnap] = await Promise.all([
+  const [aSnap, gSnap, vSnap, lSnap, cSnap, payeSnap] = await Promise.all([
     db.ref('actions').get(),
-    db.ref('labos').get(),
-    db.ref('recoltes').get(),
+    db.ref('cambriolages').get(),
     db.ref('ventes').get(),
+    db.ref('labos').get(),
     db.ref('config').get(),
     db.ref('payes').get(),
   ]);
-  const cfg = getConfig(cSnap.val());
+  const cfg = Object.assign({ taux_action_pct: 25, taux_cambriolage: 700, taux_pochon: 25, taux_branche: 10 }, cSnap.val() || {});
   const matchWeek = item => !semaineId || item.semaine_id === semaineId;
 
   const parMembre = {};
-  const ajoute = (mid, part) => { if (part) parMembre[mid] = (parMembre[mid] || 0) + part; };
-  entries(aSnap.val()).filter(([id, a]) => matchWeek(a)).forEach(([id, a]) => ajoute(a.membre_id, partMembre(cfg, 'actions', a)));
-  entries(lSnap.val()).filter(([id, l]) => matchWeek(l)).forEach(([id, l]) => ajoute(l.membre_id, partMembre(cfg, 'labos', l)));
-  entries(rSnap.val()).filter(([id, r]) => matchWeek(r)).forEach(([id, r]) => ajoute(r.membre_id, partMembre(cfg, 'recoltes', r)));
-  entries(vSnap.val()).filter(([id, v]) => matchWeek(v)).forEach(([id, v]) => ajoute(v.membre_id, partMembre(cfg, 'ventes', v)));
-  // Bijouterie / Banque / Armurerie : aucune part individuelle, non comptés dans la paye
+  entries(aSnap.val()).filter(([id, a]) => a.resultat !== 'Échec' && matchWeek(a)).forEach(([id, a]) => {
+    const part = (a.montant || 0) * (cfg.taux_action_pct / 100);
+    parMembre[a.membre_id] = (parMembre[a.membre_id] || 0) + part;
+  });
+  entries(gSnap.val()).filter(([id, g]) => g.resultat !== 'Échec' && matchWeek(g)).forEach(([id, g]) => {
+    const part = (g.count || 0) * cfg.taux_cambriolage;
+    parMembre[g.membre_id] = (parMembre[g.membre_id] || 0) + part;
+  });
+  entries(vSnap.val()).filter(([id, v]) => v.resultat !== 'Échec' && matchWeek(v)).forEach(([id, v]) => {
+    const part = (v.qty || 0) * cfg.taux_pochon;
+    parMembre[v.membre_id] = (parMembre[v.membre_id] || 0) + part;
+  });
+  entries(lSnap.val()).filter(([id, l]) => l.resultat !== 'Échec' && matchWeek(l)).forEach(([id, l]) => {
+    const part = (l.branche_qty || 0) * (cfg.taux_branche || 0);
+    parMembre[l.membre_id] = (parMembre[l.membre_id] || 0) + part;
+  });
+  // Fleeca / Armurerie : aucune part individuelle, non comptés dans la paye
 
+  const payes = entries(payeSnap.val()).filter(([id, p]) => matchWeek(p));
   const payeParMembre = {};
-  entries(payeSnap.val()).filter(([id, p]) => matchWeek(p)).forEach(([id, p]) => {
+  payes.forEach(([id, p]) => {
     payeParMembre[p.membre_id] = (payeParMembre[p.membre_id] || 0) + (p.montant || 0);
   });
 

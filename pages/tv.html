@@ -83,7 +83,7 @@
   </div>
 
   <div class="tv-slide" data-slide="countdown">
-    <div class="tv-h">⏳ Fin de semaine</div>
+    <div class="tv-h">⏳ Prochaine paye</div>
     <div class="tv-cd" id="tv-countdown"></div>
   </div>
 
@@ -93,12 +93,12 @@
   </div>
 
   <div class="tv-slide" data-slide="quotas">
-    <div class="tv-h">💵 Cotisation de la semaine</div>
+    <div class="tv-h">📋 Quotas de la semaine (Actions)</div>
     <div id="tv-quotas"></div>
   </div>
 
   <div class="tv-slide" data-slide="capitaine">
-    <div class="tv-h">❄️ Membre du jour</div>
+    <div class="tv-h">👑 Membre du jour</div>
     <div class="tv-capitaine" id="tv-capitaine"></div>
   </div>
 
@@ -161,31 +161,37 @@
 
     // ---- Données principales (rafraîchies toutes les 60s) ----
     async function chargerDonnees() {
-      const [mSnap, aSnap, lSnap, rSnap, vSnap, cSnap] = await Promise.all([
+      const [mSnap, aSnap, gSnap, vSnap, lSnap, cSnap] = await Promise.all([
         db.ref('membres').get(),
         db.ref('actions').get(),
-        db.ref('labos').get(),
-        db.ref('recoltes').get(),
+        db.ref('cambriolages').get(),
         db.ref('ventes').get(),
+        db.ref('labos').get(),
         db.ref('config').get()
       ]);
       const membres = Object.fromEntries(entries(mSnap.val()));
-      const cfg = getConfig(cSnap.val());
-      const activeWeekId = cSnap.val() && cSnap.val().semaine_active_id;
+      const cfg = Object.assign({ taux_action_pct: 25, taux_cambriolage: 700, taux_pochon: 25, taux_branche: 10 }, cSnap.val() || {});
+      const activeWeekId = cfg.semaine_active_id;
       const actions = entries(aSnap.val()).filter(([,a]) => a.resultat !== 'Échec');
-      const labos = entries(lSnap.val()).filter(([,l]) => l.resultat !== 'Échec');
-      const recoltes = entries(rSnap.val());
+      const gofasts = entries(gSnap.val()).filter(([,g]) => g.resultat !== 'Échec');
       const ventes = entries(vSnap.val()).filter(([,v]) => v.resultat !== 'Échec');
+      const labos = entries(lSnap.val()).filter(([,l]) => l.resultat !== 'Échec');
 
-      // Part due — toutes semaines confondues (classement) + semaine active (podium)
-      const partTotal = {}, partSemaine = {}, cotisationSemaine = {};
-      const addPart = (list, kind) => list.forEach(([, item]) => {
-        const part = partMembre(cfg, kind, item);
+      // Part due — toutes semaines confondues (classement) + semaine active (podium/quotas)
+      const partTotal = {}, partSemaine = {}, compteActionsSemaine = {};
+      const addPart = (list, tauxFn, dict, semScope) => list.forEach(([, item]) => {
+        const part = tauxFn(item);
         partTotal[item.membre_id] = (partTotal[item.membre_id] || 0) + part;
-        if (item.semaine_id === activeWeekId) partSemaine[item.membre_id] = (partSemaine[item.membre_id] || 0) + part;
+        if (!semScope || item.semaine_id === activeWeekId) dict[item.membre_id] = (dict[item.membre_id] || 0) + part;
       });
-      addPart(actions, 'actions'); addPart(labos, 'labos'); addPart(recoltes, 'recoltes'); addPart(ventes, 'ventes');
-      actions.forEach(([, a]) => { if (a.semaine_id === activeWeekId) cotisationSemaine[a.membre_id] = (cotisationSemaine[a.membre_id] || 0) + (a.montant || 0); });
+      addPart(actions, a => (a.montant || 0) * (cfg.taux_action_pct / 100), partSemaine, true);
+      addPart(gofasts, g => (g.count || 0) * cfg.taux_cambriolage, partSemaine, true);
+      addPart(ventes, v => (v.qty || 0) * cfg.taux_pochon, partSemaine, true);
+      addPart(labos, l => (l.branche_qty || 0) * (cfg.taux_branche || 0), partSemaine, true);
+
+      [actions, gofasts].flat().forEach(([, item]) => {
+        if (item.semaine_id === activeWeekId) compteActionsSemaine[item.membre_id] = (compteActionsSemaine[item.membre_id] || 0) + 1;
+      });
 
       const actifs = Object.entries(membres).filter(([id, m]) => m.actif !== false && !m.invisible);
 
@@ -214,17 +220,17 @@
               <div class="amount">${fmtMoney(r.total)}</div>
             </div>`).join('');
 
-      // Cotisation (montant des actions, semaine active)
-      const cible = cfg.quotas.cotisation || 0;
+      // Quotas (Actions, semaine active)
+      const cible = (cfg.quotas || {}).actions || 0;
       document.getElementById('tv-quotas').innerHTML = cible <= 0
         ? `<div style="font-size:20px;color:var(--muted);">Aucun objectif configuré (Admin → Quotas).</div>`
         : actifs.map(([id, m]) => {
-            const fait = cotisationSemaine[id] || 0;
+            const fait = compteActionsSemaine[id] || 0;
             const pct = Math.min(100, Math.round(fait / cible * 100));
             return `<div class="tv-quota-row">
               <div class="name">${gradeInfo(m.grade).emoji} ${m.prenom}</div>
               <div class="tv-quota-bar"><div class="fill" style="width:${pct}%;"></div></div>
-              <div class="pct" style="width:170px;">${fmtMoney(fait)} / ${fmtMoney(cible)}</div>
+              <div class="pct">${fait}/${cible}</div>
             </div>`;
           }).join('');
 
