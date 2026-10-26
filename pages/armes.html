@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Morosov — Armes</title>
+<link rel="stylesheet" href="../css/style.css">
+<style>
+  .arme-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;}
+  .arme-card{
+    background:var(--card-2);border:1px solid var(--line);border-radius:var(--radius);
+    padding:14px;display:flex;flex-direction:column;gap:8px;
+  }
+  .arme-top{display:flex;align-items:center;gap:10px;}
+  .arme-icon{
+    width:64px;height:64px;border-radius:8px;background:var(--bg-1);border:1px solid var(--line);
+    display:flex;align-items:center;justify-content:center;font-size:30px;flex-shrink:0;overflow:hidden;
+  }
+  .arme-icon img{width:100%;height:100%;object-fit:cover;}
+  .arme-nom{font-family:'Barlow',sans-serif;font-size:17px;font-weight:600;}
+  .arme-muni{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);}
+  .arme-row{display:flex;gap:8px;align-items:center;}
+  .arme-row label{font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;width:44px;flex-shrink:0;}
+  .arme-row input{width:100%;padding:6px 8px;font-size:14px;}
+  .arme-stock-low{border-color:var(--danger) !important;color:var(--danger) !important;}
+  .arme-upload-btn{
+    display:inline-block;width:100%;text-align:center;cursor:pointer;
+    padding:8px 10px;font-size:13px;white-space:nowrap;
+  }
+  .opanel{display:none;}
+  .opanel.active{display:block;}
+  .btabpanel{display:none;}
+  .btabpanel.active{display:block;}
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar" id="sidebar"></aside>
+  <main class="main">
+    <div class="pagehead">
+      <h2 id="pagehead-title">Armurerie</h2>
+      <div class="rule"></div>
+    </div>
+    <div class="note-hint" style="margin-bottom:16px;">Stock et prix d'achat modifiables ici même (sauvegarde automatique à la perte de focus).</div>
+
+    <div class="tabs">
+      <button data-otab="feu" class="active">🔫 Armes à feu</button>
+      <button data-otab="blanches">🗡️ Armes blanches</button>
+      <button data-otab="munitions">🧨 Munitions</button>
+    </div>
+
+    <!-- ARMES À FEU -->
+    <div class="opanel active" id="opanel-feu">
+      <div class="tabs">
+        <button data-tab="pistolet" class="active">🔫 Armes de poing</button>
+        <button data-tab="automatique">💥 Armes automatiques</button>
+        <button data-tab="pompe">🔴 Fusils à pompe</button>
+        <button data-tab="lourdes">🎯 Armes lourdes</button>
+      </div>
+
+      <div class="tabpanel active" id="panel-pistolet"><div class="card"><div class="arme-grid" id="grid-pistolet"></div></div></div>
+      <div class="tabpanel" id="panel-automatique"><div class="card"><div class="arme-grid" id="grid-automatique"></div></div></div>
+      <div class="tabpanel" id="panel-pompe"><div class="card"><div class="arme-grid" id="grid-pompe"></div></div></div>
+      <div class="tabpanel" id="panel-lourdes"><div class="card"><div class="arme-grid" id="grid-lourdes"></div></div></div>
+    </div>
+
+    <!-- ARMES BLANCHES -->
+    <div class="opanel" id="opanel-blanches">
+      <div class="tabs">
+        <button data-btab="letales" class="active">☠️ Létales</button>
+        <button data-btab="non_letales">🥊 Non létales</button>
+      </div>
+
+      <div class="btabpanel active" id="bpanel-letales">
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <h3 style="margin-bottom:0;border-bottom:none;padding-bottom:0;">☠️ Armes létales</h3>
+            <button class="ghost" id="btn-new-letales">➕ Ajouter une arme</button>
+          </div>
+          <div style="border-bottom:1px dashed var(--line);margin:10px 0 14px;"></div>
+          <form class="arme-card" id="form-letales" style="display:none;">
+            <div class="arme-top">
+              <div class="arme-icon">🗡️</div>
+              <input type="text" id="bl-nom" placeholder="Nom de l'arme" required style="font-family:'Barlow',sans-serif;font-size:15px;">
+            </div>
+            <div class="arme-row"><label>Stock</label><input type="number" id="bl-stock" min="0" step="1" value="0"></div>
+            <div class="arme-row"><label>Prix</label><input type="number" id="bl-prix" min="0" step="1" required></div>
+            <div style="display:flex;gap:8px;">
+              <button class="submit" type="submit" style="flex:1;">Ajouter</button>
+              <button class="ghost" type="button" id="btn-cancel-letales">Annuler</button>
+            </div>
+          </form>
+          <div class="arme-grid" id="grid-letales"></div>
+        </div>
+      </div>
+
+      <div class="btabpanel" id="bpanel-non_letales">
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <h3 style="margin-bottom:0;border-bottom:none;padding-bottom:0;">🥊 Armes non létales</h3>
+            <button class="ghost" id="btn-new-nonletales">➕ Ajouter une arme</button>
+          </div>
+          <div style="border-bottom:1px dashed var(--line);margin:10px 0 14px;"></div>
+          <form class="arme-card" id="form-nonletales" style="display:none;">
+            <div class="arme-top">
+              <div class="arme-icon">🥊</div>
+              <input type="text" id="bn-nom" placeholder="Nom de l'arme" required style="font-family:'Barlow',sans-serif;font-size:15px;">
+            </div>
+            <div class="arme-row"><label>Stock</label><input type="number" id="bn-stock" min="0" step="1" value="0"></div>
+            <div class="arme-row"><label>Prix</label><input type="number" id="bn-prix" min="0" step="1" required></div>
+            <div style="display:flex;gap:8px;">
+              <button class="submit" type="submit" style="flex:1;">Ajouter</button>
+              <button class="ghost" type="button" id="btn-cancel-nonletales">Annuler</button>
+            </div>
+          </form>
+          <div class="arme-grid" id="grid-non_letales"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MUNITIONS -->
+    <div class="opanel" id="opanel-munitions">
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <h3 style="margin-bottom:0;border-bottom:none;padding-bottom:0;">🧨 Munitions</h3>
+          <button class="ghost" id="btn-new-munitions">➕ Ajouter une munition</button>
+        </div>
+        <div style="border-bottom:1px dashed var(--line);margin:10px 0 14px;"></div>
+        <form class="arme-card" id="form-munitions" style="display:none;">
+          <div class="arme-top">
+            <div class="arme-icon">🧨</div>
+            <input type="text" id="mu-nom" placeholder="Type de munition" required style="font-family:'Barlow',sans-serif;font-size:15px;">
+          </div>
+          <div class="arme-row"><label>Stock</label><input type="number" id="mu-stock" min="0" step="1" value="0"></div>
+          <div class="arme-row"><label>Prix</label><input type="number" id="mu-prix" min="0" step="1" required></div>
+          <div style="display:flex;gap:8px;">
+            <button class="submit" type="submit" style="flex:1;">Ajouter</button>
+            <button class="ghost" type="button" id="btn-cancel-munitions">Annuler</button>
+          </div>
+        </form>
+        <div class="arme-grid" id="grid-munitions"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
+<script src="../js/firebase-config.js"></script>
+<script src="../js/app.js"></script>
+<script>
+  const membre = initShell('armes', 'Armurerie');
+  if (membre) {
+
+    document.querySelectorAll('.tabs').forEach(tabBar => {
+      tabBar.querySelectorAll('button[data-tab]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          tabBar.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+          document.querySelectorAll('.tabpanel').forEach(p => p.classList.remove('active'));
+          btn.classList.add('active');
+          document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+        });
+      });
+      tabBar.querySelectorAll('button[data-otab]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('button[data-otab]').forEach(b => b.classList.remove('active'));
+          document.querySelectorAll('.opanel').forEach(p => p.classList.remove('active'));
+          btn.classList.add('active');
+          document.getElementById('opanel-' + btn.dataset.otab).classList.add('active');
+        });
+      });
+      tabBar.querySelectorAll('button[data-btab]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          tabBar.querySelectorAll('button[data-btab]').forEach(b => b.classList.remove('active'));
+          document.querySelectorAll('.btabpanel').forEach(p => p.classList.remove('active'));
+          btn.classList.add('active');
+          document.getElementById('bpanel-' + btn.dataset.btab).classList.add('active');
+        });
+      });
+    });
+
+    // Catalogue de départ (nom, munitions max, prix de revente connu — 0 si INTERDIT)
+    const CATALOGUE_DEPART = {
+      pistolet: [
+        ['Pistolet artisanal', 80, 120000], ['SNS', 80, 120000], ['SNS PICO', 80, 120000],
+        ['Colt', 80, 150000], ['P88', 80, 180000], ['M9A3', 80, 150000],
+        ['Pistolet de Combat', 80, 180000], ['Glock 17', 80, 250000], ['Pistolet en céramique', 80, 200000],
+        ['Calibre 50', 80, 0], ['Berreta (Pistolet MK2)', 80, 0], ['Pistolet Lourd', 80, 0], ['Revolver', 80, 0],
+      ],
+      automatique: [
+        ['Mini SMG', 120, 500000], ['Micro SMG', 120, 500000], ['TEC9', 120, 500000],
+        ['Mini Uzi Tactic', 120, 0], ['MAC-10', 120, 0], ['Mp5k', 120, 0],
+        ['Mitraillette Tactique', 120, 0], ['Vesper 9', 120, 0], ['Vortex SMG', 120, 0],
+      ],
+      pompe: [
+        ['Fusil à canon scié', 30, 0], ['Fusil à pompe', 30, 0], ['Striker 12', 30, 0],
+        ['Fusil à pompe d\'assaut', 30, 0], ['Fusil à double canon', 30, 0],
+      ],
+      lourdes: [
+        ['Fusil compact', 150, 0], ['UMP 45', 120, 0], ['SG552', 150, 0], ['Fusil Lourd', 120, 0], ['Thompson', 150, 0],
+        ['AK47', 150, 0], ['UMP 45 CHR', 150, 0], ['Mk Priss', 150, 0], ['AR 7', 150, 0],
+      ],
+    };
+
+    async function seedSiVide() {
+      const snap = await db.ref('armes').get();
+      const data = snap.val() || {};
+      const updates = {};
+      Object.entries(CATALOGUE_DEPART).forEach(([cat, armes]) => {
+        if (data[cat]) return; // catégorie déjà présente, on ne touche à rien
+        const obj = {};
+        armes.forEach(([nom, munitions_max, prix]) => {
+          obj[uid()] = { nom, munitions_max, stock: 0, prix: prix || 0, image_url: '' };
+        });
+        updates[cat] = obj;
+      });
+      if (Object.keys(updates).length > 0) await db.ref('armes').update(updates);
+    }
+
+    // Corrige une seule fois les prix déjà seedés à 0 (catalogue créé avant l'ajout des prix connus)
+    async function appliquerPrixConnusUneFois() {
+      const flagSnap = await db.ref('config/prix_armes_appliques').get();
+      if (flagSnap.val()) return;
+
+      const prixConnus = {};
+      Object.values(CATALOGUE_DEPART).flat().forEach(([nom, , prix]) => { prixConnus[nom] = prix || 0; });
+
+      const snap = await db.ref('armes').get();
+      const data = snap.val() || {};
+      const updates = {};
+      Object.entries(data).forEach(([cat, armesObj]) => {
+        Object.entries(armesObj || {}).forEach(([id, a]) => {
+          if (prixConnus[a.nom] !== undefined && (a.prix || 0) === 0) {
+            updates[`armes/${cat}/${id}/prix`] = prixConnus[a.nom];
+          }
+        });
+      });
+      if (Object.keys(updates).length > 0) await db.ref().update(updates);
+      await db.ref('config/prix_armes_appliques').set(true);
+    }
+
+    function renderCategorie(cat, armesObj) {
+      const el = document.getElementById('grid-' + cat);
+      const armes = entries(armesObj || {}).sort((a, b) => a[1].nom.localeCompare(b[1].nom));
+      if (armes.length === 0) { el.innerHTML = '<div class="empty">Aucune arme dans cette catégorie.</div>'; return; }
+
+      const peutModifier = canManage(membre);
+      el.innerHTML = armes.map(([id, a]) => `
+        <div class="arme-card">
+          <div class="arme-top">
+            <div class="arme-icon">${a.image_url ? `<img src="${a.image_url}" alt="${a.nom}">` : '🔫'}</div>
+            <div>
+              <div class="arme-nom">${a.nom}</div>
+              <div class="arme-muni">${a.munitions_max || 0} munitions max</div>
+            </div>
+          </div>
+          <div class="arme-row">
+            <label>Stock</label>
+            ${peutModifier
+              ? `<input type="number" class="edit-stock" data-cat="${cat}" data-id="${id}" min="0" step="1" value="${a.stock || 0}">`
+              : `<span>${a.stock || 0}</span>`}
+          </div>
+          <div class="arme-row">
+            <label>Prix</label>
+            ${peutModifier
+              ? `<input type="number" class="edit-prix" data-cat="${cat}" data-id="${id}" min="0" step="1" value="${a.prix || 0}">`
+              : `<span>${fmtMoney(a.prix)}</span>`}
+          </div>
+          ${peutModifier ? `
+          <div class="arme-row">
+            <label>Image</label>
+            <label class="ghost arme-upload-btn">
+              📷 Choisir une image
+              <input type="file" accept="image/*" class="upload-image" data-cat="${cat}" data-id="${id}" style="display:none;">
+            </label>
+          </div>` : ''}
+        </div>
+      `).join('');
+
+      el.querySelectorAll('.edit-stock').forEach(inp => {
+        inp.addEventListener('change', () => {
+          const v = parseInt(inp.value, 10);
+          db.ref(`armes/${inp.dataset.cat}/${inp.dataset.id}/stock`).set(isNaN(v) || v < 0 ? 0 : v);
+        });
+      });
+      el.querySelectorAll('.edit-prix').forEach(inp => {
+        inp.addEventListener('change', () => {
+          const v = parseFloat(inp.value);
+          db.ref(`armes/${inp.dataset.cat}/${inp.dataset.id}/prix`).set(isNaN(v) || v < 0 ? 0 : v);
+        });
+      });
+      el.querySelectorAll('.upload-image').forEach(inp => {
+        inp.addEventListener('change', () => {
+          compresserImage(inp.files[0], dataUrl => {
+            db.ref(`armes/${inp.dataset.cat}/${inp.dataset.id}/image_url`).set(dataUrl)
+              .then(() => toast('Image enregistrée.'));
+          });
+        });
+      });
+    }
+
+    // Compresse une image uploadée en carré net (220px, JPEG qualité 0.95) et renvoie un data URL
+    function compresserImage(fichier, callback) {
+      if (!fichier) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          const taille = 220;
+          const canvas = document.createElement('canvas');
+          canvas.width = taille; canvas.height = taille;
+          const ctx = canvas.getContext('2d');
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+          const ratio = Math.max(taille / img.width, taille / img.height);
+          const w = img.width * ratio, h = img.height * ratio;
+          ctx.drawImage(img, (taille - w) / 2, (taille - h) / 2, w, h);
+          callback(canvas.toDataURL('image/jpeg', 0.95));
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(fichier);
+    }
+
+    seedSiVide()
+      .then(appliquerPrixConnusUneFois)
+      .then(() => {
+        db.ref('armes').on('value', snap => {
+          const data = snap.val() || {};
+          ['pistolet', 'automatique', 'pompe', 'lourdes'].forEach(cat => renderCategorie(cat, data[cat]));
+        });
+      });
+
+    // ---- ARMES BLANCHES (libre, sans catalogue prédéfini) ----
+    function setupArmeBlanche(nodeRoot, sousCat, prefixe, px, iconFallback) {
+      const peutModifier = canManage(membre);
+      if (peutModifier) document.getElementById('btn-new-' + prefixe).style.display = 'inline-block';
+      else document.getElementById('btn-new-' + prefixe).style.display = 'none';
+
+      document.getElementById('btn-new-' + prefixe).addEventListener('click', () => {
+        document.getElementById('form-' + prefixe).style.display = 'flex';
+        document.getElementById('btn-new-' + prefixe).style.display = 'none';
+      });
+      document.getElementById('btn-cancel-' + prefixe).addEventListener('click', () => {
+        document.getElementById('form-' + prefixe).style.display = 'none';
+        document.getElementById('btn-new-' + prefixe).style.display = 'inline-block';
+        document.getElementById('form-' + prefixe).reset();
+      });
+
+      const chemin = sousCat ? `${nodeRoot}/${sousCat}` : nodeRoot;
+
+      document.getElementById('form-' + prefixe).addEventListener('submit', e => {
+        e.preventDefault();
+        const nom = document.getElementById(px + '-nom').value.trim();
+        const prix = parseFloat(document.getElementById(px + '-prix').value);
+        const stock = parseInt(document.getElementById(px + '-stock').value, 10) || 0;
+        if (!nom || isNaN(prix)) return;
+        db.ref(`${chemin}/${uid()}`).set({ nom, prix, stock, image_url: '' });
+        document.getElementById('form-' + prefixe).reset();
+        document.getElementById('form-' + prefixe).style.display = 'none';
+        document.getElementById('btn-new-' + prefixe).style.display = 'inline-block';
+      });
+
+      function render(armesObj) {
+        const el = document.getElementById('grid-' + (sousCat || prefixe));
+        const armes = entries(armesObj || {}).sort((a, b) => a[1].nom.localeCompare(b[1].nom));
+        if (armes.length === 0) { el.innerHTML = '<div class="empty">Rien d\'ajouté pour le moment.</div>'; return; }
+
+        el.innerHTML = armes.map(([id, a]) => `
+          <div class="arme-card">
+            <div class="arme-top">
+              <div class="arme-icon">${a.image_url ? `<img src="${a.image_url}" alt="${a.nom}">` : iconFallback}</div>
+              <div class="arme-nom">${a.nom}</div>
+            </div>
+            <div class="arme-row">
+              <label>Stock</label>
+              ${peutModifier
+                ? `<input type="number" class="wb-stock" data-id="${id}" min="0" step="1" value="${a.stock || 0}">`
+                : `<span>${a.stock || 0}</span>`}
+            </div>
+            <div class="arme-row">
+              <label>Prix</label>
+              ${peutModifier
+                ? `<input type="number" class="wb-prix" data-id="${id}" min="0" step="1" value="${a.prix || 0}">`
+                : `<span>${fmtMoney(a.prix)}</span>`}
+            </div>
+            ${peutModifier ? `
+            <div class="arme-row">
+              <label>Image</label>
+              <label class="ghost arme-upload-btn">
+                📷 Choisir une image
+                <input type="file" accept="image/*" class="wb-upload" data-id="${id}" style="display:none;">
+              </label>
+            </div>
+            <button class="ghost wb-del" data-id="${id}">✕ Supprimer</button>` : ''}
+          </div>
+        `).join('');
+
+        el.querySelectorAll('.wb-stock').forEach(inp => {
+          inp.addEventListener('change', () => {
+            const v = parseInt(inp.value, 10);
+            db.ref(`${chemin}/${inp.dataset.id}/stock`).set(isNaN(v) || v < 0 ? 0 : v);
+          });
+        });
+        el.querySelectorAll('.wb-prix').forEach(inp => {
+          inp.addEventListener('change', () => {
+            const v = parseFloat(inp.value);
+            db.ref(`${chemin}/${inp.dataset.id}/prix`).set(isNaN(v) || v < 0 ? 0 : v);
+          });
+        });
+        el.querySelectorAll('.wb-upload').forEach(inp => {
+          inp.addEventListener('change', () => {
+            compresserImage(inp.files[0], dataUrl => {
+              db.ref(`${chemin}/${inp.dataset.id}/image_url`).set(dataUrl)
+                .then(() => toast('Image enregistrée.'));
+            });
+          });
+        });
+        el.querySelectorAll('.wb-del').forEach(btn => {
+          btn.addEventListener('click', () => db.ref(`${chemin}/${btn.dataset.id}`).remove());
+        });
+      }
+
+      db.ref(chemin).on('value', snap => render(snap.val()));
+    }
+
+    setupArmeBlanche('armes_blanches', 'letales', 'letales', 'bl', '🗡️');
+    setupArmeBlanche('armes_blanches', 'non_letales', 'nonletales', 'bn', '🗡️');
+    setupArmeBlanche('munitions', null, 'munitions', 'mu', '🧨');
+  }
+</script>
+</body>
+</html>

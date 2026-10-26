@@ -1,0 +1,467 @@
+// ============================================================
+// MOROSOV — Shell commun (sidebar + topbar)
+// ============================================================
+const NAV_ITEMS = [
+  { page: 'dashboard',    icon: '🏛️', label: 'Dashboard',    file: 'dashboard.html' },
+  { page: 'planning',     icon: '📅', label: 'Planning',     file: 'planning.html' },
+  { page: 'tracker',      icon: '📋', label: 'Tracker',      file: 'tracker.html' },
+  { page: 'stock',        icon: '📦', label: 'Stock',        file: 'stock.html' },
+  { page: 'armes',        icon: '🔫', label: 'Armes',        file: 'armes.html' },
+  { page: 'transactions', icon: '🧾', label: 'Transactions', file: 'transactions.html' },
+  { page: 'blanchiment',  icon: '🧼', label: 'Blanchiment',  file: 'blanchiment.html' },
+  { page: 'stats',        icon: '📊', label: 'Stats & Quotas', file: 'stats.html' },
+  { page: 'paye',         icon: '💰', label: 'Paye',         file: 'paye.html' },
+  { page: 'taxes',        icon: '⚖️', label: 'Taxes',        file: 'taxes.html' },
+  { page: 'admin',        icon: '⚙️', label: 'Admin',        file: 'admin.html', adminOnly: true },
+  { page: 'profil',       icon: '👤', label: 'Profil',       file: 'profil.html' },
+];
+
+function initShell(pageKey, title) {
+  const membre = requireSession();
+  if (!membre) return null;
+
+  if (pageKey === 'admin' && !isAdmin(membre)) {
+    window.location.href = 'dashboard.html';
+    return null;
+  }
+
+  const g = gradeInfo(membre.grade);
+
+  const navHtml = NAV_ITEMS
+    .filter(item => !item.adminOnly || isAdmin(membre))
+    .map(item => `
+      <a href="${item.file}" class="${item.page === pageKey ? 'active' : ''}">
+        <span class="ic">${item.icon}</span> ${item.label}
+      </a>`)
+    .join('');
+
+  document.getElementById('sidebar').innerHTML = `
+    <div class="brand">
+      <img src="../img/logo.svg" alt="Morosov" class="brand-logo">
+      <div class="tag">МОРОЗОВ</div>
+    </div>
+    <div class="navlist">${navHtml}</div>
+    <div class="who">
+      <b>${membre.prenom}</b>
+      <span class="grade">${g.emoji} ${g.nom.toUpperCase()}</span>
+    </div>
+    <button class="ghost logout" id="btn-logout">Se déconnecter</button>
+  `;
+
+  document.getElementById('btn-logout').addEventListener('click', () => {
+    clearSession();
+    window.location.href = '../index.html';
+  });
+
+  if (document.getElementById('pagehead-title')) {
+    document.getElementById('pagehead-title').textContent = title;
+  }
+
+  startSnow();
+  ensureActiveWeek().catch(err => console.error('ensureActiveWeek', err));
+  applyPermissions(membre, pageKey).catch(err => console.error('applyPermissions', err));
+  try { demarrerAlertesPlanning(); } catch (err) { console.error('alertesPlanning', err); }
+
+  return membre;
+}
+
+// ------------------------------------------------------------
+// Permissions par grade — masque les liens interdits dans la sidebar
+// et redirige si la page courante est interdite. Par défaut (rien
+// configuré dans Admin → Permissions) tout reste visible pour tout
+// le monde : aucun risque de se retrouver bloqué hors config.
+// ------------------------------------------------------------
+async function applyPermissions(membre, pageKey) {
+  if (isAdmin(membre)) return; // fondateur / admin : toujours tout
+  if (pageKey === 'dashboard' || pageKey === 'profil' || pageKey === 'admin') return; // toujours visibles / déjà gérées
+
+  const snap = await db.ref('permissions/' + membre.grade).get();
+  const perms = snap.val() || {};
+
+  NAV_ITEMS.forEach(item => {
+    if (item.page === 'dashboard' || item.page === 'profil' || item.adminOnly) return;
+    if (perms[item.page] === false) {
+      const a = document.querySelector(`.navlist a[href="${item.file}"]`);
+      if (a) a.remove();
+    }
+  });
+
+  if (perms[pageKey] === false) {
+    window.location.href = 'dashboard.html';
+  }
+}
+
+function toast(msg) {
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 2600);
+}
+
+// peut payer / valider un blanchiment : Fondateur, admin, Organisation, Lead ou Co Lead (ordre <= 3)
+function canManage(membre) {
+  return isAdmin(membre) || gradeInfo(membre.grade).ordre <= 3;
+}
+
+// Renvoie le dimanche 19h le plus récent (passé ou en cours), en heure locale.
+function startOfWeekSunday7pmISO() {
+  const now = new Date();
+  const d = new Date(now);
+  d.setHours(19, 0, 0, 0);
+  d.setDate(d.getDate() - d.getDay()); // recule jusqu'au dimanche de cette semaine (getDay() : dimanche = 0)
+  d.setHours(19, 0, 0, 0); // setDate peut décaler l'heure lors d'un changement d'heure d'été/hiver
+  if (d.getTime() > now.getTime()) d.setDate(d.getDate() - 7); // ce dimanche 19h n'est pas encore passé → semaine précédente
+  return d.toISOString();
+}
+
+// ------------------------------------------------------------
+// Semaines — création / clôture automatique, sans bot.
+// Cycle : dimanche 19h → dimanche 19h suivant.
+// Appelée à chaque chargement de page (initShell) : idempotente,
+// utilise une transaction Firebase pour éviter les doublons si
+// plusieurs personnes se connectent au même moment.
+// ------------------------------------------------------------
+async function ensureActiveWeek() {
+  const now = new Date();
+  const debutISO = startOfWeekSunday7pmISO();
+  const debut = new Date(debutISO);
+  const fin = new Date(debut);
+  fin.setDate(fin.getDate() + 7);
+  const finISO = fin.toISOString();
+  const nowISO = now.toISOString();
+
+  // Semaine active déclarée dans la config
+  const activeIdSnap = await db.ref('config/semaine_active_id').get();
+  const activeId = activeIdSnap.val();
+
+  if (activeId) {
+    const wSnap = await db.ref('semaines/' + activeId).get();
+    const w = wSnap.val();
+    if (w && !w.bloquee && w.fin > nowISO) {
+      return activeId; // semaine en cours toujours valide, rien à faire
+    }
+    if (w && !w.bloquee) {
+      // semaine expirée naturellement → on la clôture
+      await db.ref('semaines/' + activeId).update({ bloquee: true, closedAt: nowISO });
+    }
+  }
+
+  // Cherche si une semaine correspondant à "cette semaine" existe déjà (évite les doublons)
+  const allSnap = await db.ref('semaines').get();
+  const all = entries(allSnap.val());
+  const existing = all.find(([id, w]) => w.debut === debutISO);
+
+  let newId;
+  if (existing) {
+    newId = existing[0];
+  } else {
+    newId = uid();
+    await db.ref('semaines/' + newId).set({
+      nom: 'Semaine du ' + debut.toLocaleDateString('fr-FR') + ' 19h',
+      debut: debutISO,
+      fin: finISO,
+      bloquee: false,
+      createdAt: nowISO
+    });
+  }
+
+  // Transaction : ne remplace la semaine active que si elle n'a pas déjà été mise à jour entre-temps
+  await db.ref('config/semaine_active_id').transaction(current => {
+    if (current === activeId) return newId;
+    return current; // quelqu'un d'autre a déjà mis à jour, on ne touche à rien
+  });
+
+  const finalSnap = await db.ref('config/semaine_active_id').get();
+  return finalSnap.val() || newId;
+}
+
+// Part due à un membre pour une saisie (selon les taux de Admin → Taux, 0 tant que rien n'est renseigné)
+function partMembre(cfg, kind, item) {
+  if (item.resultat === 'Échec') return 0;
+  if (kind === 'actions')  return (item.montant || 0) * ((cfg.taux_action_pct || 0) / 100);
+  if (kind === 'labos')    return (item.labos_qty || 0) * (cfg.taux_labo || 0);
+  if (kind === 'recoltes') return (item.qty || 0) * (cfg.taux_recolte || 0);
+  return 0;
+}
+
+// Calcule le solde d'argent sale / propre depuis toutes les sources Firebase
+async function computeSoldes() {
+  const [aSnap, lSnap, rSnap, biSnap, flSnap, arSnap, txSnap, taxSnap, cSnap, argSaleSnap, argPropreSnap, blanchSnap, payeSnap] = await Promise.all([
+    db.ref('actions').get(),
+    db.ref('labos').get(),
+    db.ref('recoltes').get(),
+    db.ref('bijouteries').get(),
+    db.ref('fleecas').get(), // = Banques
+    db.ref('armureries').get(),
+    db.ref('transactions').get(),
+    db.ref('taxes').get(),
+    db.ref('config').get(),
+    db.ref('argent_sale').get(),
+    db.ref('argent_propre').get(),
+    db.ref('blanchiments').get(),
+    db.ref('payes').get(),
+  ]);
+  const cfg = getConfig(cSnap.val());
+
+  let solde_sale = 0, solde_propre = 0;
+  const parMembre = {}; // part due par membre, avant paye
+  const ajoute = (mid, part) => { if (part) parMembre[mid] = (parMembre[mid] || 0) + part; };
+
+  entries(aSnap.val()).filter(([id, a]) => a.resultat !== 'Échec').forEach(([id, a]) => {
+    solde_sale += a.montant || 0; // le montant total va au groupe
+    ajoute(a.membre_id, partMembre(cfg, 'actions', a));
+  });
+  entries(lSnap.val()).filter(([id, l]) => l.resultat !== 'Échec').forEach(([id, l]) => {
+    solde_sale += l.montant || 0; // revente éventuelle saisie sur le labo
+    ajoute(l.membre_id, partMembre(cfg, 'labos', l));
+  });
+  entries(rSnap.val()).forEach(([id, r]) => ajoute(r.membre_id, partMembre(cfg, 'recoltes', r)));
+  // Bijouterie / Banque / Armurerie : tout va au groupe, aucune part individuelle
+  [biSnap, flSnap, arSnap].forEach(snap => {
+    entries(snap.val()).filter(([id, r]) => r.resultat !== 'Échec').forEach(([id, r]) => { solde_sale += r.montant || 0; });
+  });
+
+  // Transactions : une vente fait rentrer l'argent du groupe, un achat en fait sortir
+  entries(txSnap.val()).forEach(([id, t]) => {
+    const montant = (t.prix || 0) * (t.type === 'achat' ? -1 : 1);
+    if (t.type_argent === 'propre') solde_propre += montant;
+    else solde_sale += montant;
+  });
+
+  // Taxes : dépense du groupe (ce qu'on paye), pas une recette
+  entries(taxSnap.val()).forEach(([id, t]) => {
+    if (t.type_argent === 'propre') solde_propre -= (t.montant || 0);
+    else solde_sale -= (t.montant || 0);
+  });
+
+  entries(argSaleSnap.val()).forEach(([id, m]) => {
+    solde_sale += m.type === 'Sortie' ? -(m.montant || 0) : (m.montant || 0);
+  });
+  entries(argPropreSnap.val()).forEach(([id, m]) => {
+    solde_propre += m.type === 'Sortie' ? -(m.montant || 0) : (m.montant || 0);
+  });
+
+  entries(blanchSnap.val()).forEach(([id, b]) => {
+    solde_sale -= (b.montant_sale || 0);
+    solde_propre += (b.montant_propre || 0);
+  });
+
+  const payeParMembre = {};
+  entries(payeSnap.val()).forEach(([id, p]) => {
+    solde_sale -= (p.montant || 0);
+    payeParMembre[p.membre_id] = (payeParMembre[p.membre_id] || 0) + (p.montant || 0);
+  });
+
+  const aPayerParMembre = {};
+  Object.keys(parMembre).forEach(mid => {
+    aPayerParMembre[mid] = Math.max(0, (parMembre[mid] || 0) - (payeParMembre[mid] || 0));
+  });
+
+  return { solde_sale, solde_propre, gainsParMembre: parMembre, payeParMembre, aPayerParMembre };
+}
+
+// ------------------------------------------------------------
+// Calcule les gains dus par membre pour UNE semaine précise
+// (ou pour toutes si semaineId est null/undefined).
+// Permet de payer une semaine passée même si elle est bloquée.
+// ------------------------------------------------------------
+async function computeGainsSemaine(semaineId) {
+  const [aSnap, lSnap, rSnap, cSnap, payeSnap] = await Promise.all([
+    db.ref('actions').get(),
+    db.ref('labos').get(),
+    db.ref('recoltes').get(),
+    db.ref('config').get(),
+    db.ref('payes').get(),
+  ]);
+  const cfg = getConfig(cSnap.val());
+  const matchWeek = item => !semaineId || item.semaine_id === semaineId;
+
+  const parMembre = {};
+  const ajoute = (mid, part) => { if (part) parMembre[mid] = (parMembre[mid] || 0) + part; };
+  entries(aSnap.val()).filter(([id, a]) => matchWeek(a)).forEach(([id, a]) => ajoute(a.membre_id, partMembre(cfg, 'actions', a)));
+  entries(lSnap.val()).filter(([id, l]) => matchWeek(l)).forEach(([id, l]) => ajoute(l.membre_id, partMembre(cfg, 'labos', l)));
+  entries(rSnap.val()).filter(([id, r]) => matchWeek(r)).forEach(([id, r]) => ajoute(r.membre_id, partMembre(cfg, 'recoltes', r)));
+  // Bijouterie / Banque / Armurerie : aucune part individuelle, non comptés dans la paye
+
+  const payeParMembre = {};
+  entries(payeSnap.val()).filter(([id, p]) => matchWeek(p)).forEach(([id, p]) => {
+    payeParMembre[p.membre_id] = (payeParMembre[p.membre_id] || 0) + (p.montant || 0);
+  });
+
+  const aPayerParMembre = {};
+  Object.keys(parMembre).forEach(mid => {
+    aPayerParMembre[mid] = Math.max(0, (parMembre[mid] || 0) - (payeParMembre[mid] || 0));
+  });
+
+  return { gainsParMembre: parMembre, payeParMembre, aPayerParMembre };
+}
+
+// ------------------------------------------------------------
+// Petites célébrations : confettis + son de pièces.
+// Aucune dépendance externe (canvas + Web Audio générés à la volée).
+// ------------------------------------------------------------
+function fireConfetti() {
+  const canvas = document.createElement('canvas');
+  canvas.style.cssText = 'position:fixed;inset:0;z-index:9999;pointer-events:none;';
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  document.body.appendChild(canvas);
+  const ctx = canvas.getContext('2d');
+
+  const colors = ['#4da3ff', '#cfe6ff', '#ffffff', '#1f5fbf', '#9ec5ff'];
+  const pieces = Array.from({ length: 140 }, () => ({
+    x: Math.random() * canvas.width,
+    y: -20 - Math.random() * canvas.height * 0.3,
+    r: 4 + Math.random() * 5,
+    vy: 2 + Math.random() * 3,
+    vx: -2 + Math.random() * 4,
+    rot: Math.random() * 360,
+    vrot: -8 + Math.random() * 16,
+    color: colors[Math.floor(Math.random() * colors.length)],
+  }));
+
+  let frame = 0;
+  const maxFrames = 130;
+  function tick() {
+    frame++;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    pieces.forEach(p => {
+      p.x += p.vx; p.y += p.vy; p.rot += p.vrot;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot * Math.PI / 180);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.r / 2, -p.r / 2, p.r, p.r * 0.6);
+      ctx.restore();
+    });
+    if (frame < maxFrames) {
+      requestAnimationFrame(tick);
+    } else {
+      canvas.remove();
+    }
+  }
+  requestAnimationFrame(tick);
+}
+
+function playCoinSound() {
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    const ctx = new AudioCtx();
+    const notes = [1046.5, 1318.5, 1568]; // do-mi-sol aigus, façon "cha-ching"
+    notes.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.value = freq;
+      const start = ctx.currentTime + i * 0.07;
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(0.25, start + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.35);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(start);
+      osc.stop(start + 0.4);
+    });
+    setTimeout(() => ctx.close(), 900);
+  } catch (e) {
+    console.error('playCoinSound', e); // jamais bloquant
+  }
+}
+
+function celebrer() {
+  fireConfetti();
+  playCoinSound();
+}
+
+// ------------------------------------------------------------
+// Membre du jour — surprise cosmétique, change chaque jour,
+// aucun impact mécanique. Déterministe par date (même résultat
+// pour tout le monde le même jour).
+// ------------------------------------------------------------
+function capitaineDuJour(membresActifs) {
+  if (!membresActifs || membresActifs.length === 0) return null;
+  const ids = membresActifs.map(([id]) => id).sort(); // ordre stable
+  const jourSeed = new Date().toISOString().slice(0, 10); // ex: 2026-08-26
+  let hash = 0;
+  for (let i = 0; i < jourSeed.length; i++) hash = (hash * 31 + jourSeed.charCodeAt(i)) >>> 0;
+  const index = hash % ids.length;
+  const id = ids[index];
+  return membresActifs.find(([mid]) => mid === id) || null;
+}
+
+
+// ------------------------------------------------------------
+// Alertes Planning — affiche une alerte (bannière + son + notification
+// navigateur si autorisée) quand l'heure d'un évènement arrive.
+// Fonctionne sur toutes les pages tant que le site est ouvert.
+// ------------------------------------------------------------
+function demarrerAlertesPlanning() {
+  let evenements = {};
+  const FENETRE_MS = 10 * 60 * 1000; // alerte encore affichée si le site est ouvert dans les 10 min après l'heure
+
+  const dejaAlerte = cle => { try { return localStorage.getItem(cle) === '1'; } catch (e) { return false; } };
+  const marquerAlerte = cle => { try { localStorage.setItem(cle, '1'); } catch (e) {} };
+
+  // demande l'autorisation des notifications au premier clic (un geste utilisateur est requis)
+  if ('Notification' in window && Notification.permission === 'default') {
+    document.addEventListener('click', () => { try { Notification.requestPermission(); } catch (e) {} }, { once: true });
+  }
+
+  function bip() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      [0, 0.25, 0.5].forEach(delai => {
+        const osc = ctx.createOscillator(), gain = ctx.createGain();
+        osc.type = 'sine'; osc.frequency.value = 880;
+        gain.gain.setValueAtTime(0.2, ctx.currentTime + delai);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delai + 0.2);
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.start(ctx.currentTime + delai); osc.stop(ctx.currentTime + delai + 0.2);
+      });
+    } catch (e) {}
+  }
+
+  function afficherAlerte(ev) {
+    let zone = document.getElementById('planning-alertes');
+    if (!zone) {
+      zone = document.createElement('div');
+      zone.id = 'planning-alertes';
+      zone.style.cssText = 'position:fixed;top:16px;right:16px;z-index:9999;display:flex;flex-direction:column;gap:10px;max-width:340px;';
+      document.body.appendChild(zone);
+    }
+    const box = document.createElement('div');
+    box.style.cssText = `background:${ev.couleur || '#1f5fbf'};color:#fff;border-radius:10px;padding:12px 14px;box-shadow:0 8px 24px rgba(0,0,0,.6);border:2px solid rgba(255,255,255,.5);`;
+    const titre = document.createElement('div');
+    titre.style.cssText = 'font-weight:700;font-size:15px;';
+    titre.textContent = '📅 ' + ev.titre;
+    const sous = document.createElement('div');
+    sous.style.cssText = 'font-size:13px;margin-top:3px;opacity:.95;';
+    sous.textContent = 'C\'est l\'heure' + (ev.heure ? ' (' + ev.heure + ')' : '') + (ev.note ? ' — ' + ev.note : '');
+    const ok = document.createElement('button');
+    ok.textContent = 'OK';
+    ok.style.cssText = 'margin-top:8px;background:rgba(0,0,0,.35);border:none;color:#fff;border-radius:6px;padding:3px 14px;cursor:pointer;';
+    ok.addEventListener('click', () => box.remove());
+    box.append(titre, sous, ok);
+    zone.appendChild(box);
+    bip();
+    if ('Notification' in window && Notification.permission === 'granted') {
+      try { new Notification('📅 ' + ev.titre, { body: sous.textContent }); } catch (e) {}
+    }
+  }
+
+  function verifier() {
+    const now = Date.now();
+    Object.entries(evenements).forEach(([id, ev]) => {
+      if (!ev || !ev.date || !ev.heure) return;
+      const t = new Date(ev.date + 'T' + ev.heure).getTime();
+      if (isNaN(t) || now < t || now - t > FENETRE_MS) return;
+      const cle = `planning_alerte_${id}_${ev.date}_${ev.heure}`;
+      if (dejaAlerte(cle)) return;
+      marquerAlerte(cle);
+      afficherAlerte(ev);
+    });
+  }
+
+  db.ref('planning').on('value', snap => { evenements = snap.val() || {}; verifier(); });
+  setInterval(verifier, 15000);
+}

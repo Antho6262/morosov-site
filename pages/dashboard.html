@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Morosov — Dashboard</title>
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar" id="sidebar"></aside>
+  <main class="main">
+    <div class="pagehead">
+      <h2 id="pagehead-title">Dashboard</h2>
+      <div class="rule"></div>
+    </div>
+    <div style="text-align:right;margin-bottom:-6px;"><a class="ghost" href="tv.html" style="display:inline-block;">📺 Mode TV</a></div>
+    <div class="note-hint" style="margin-bottom:16px;">🗓️ Fin de semaine le dimanche à 19h : cotisation à rendre et payes versées par la hiérarchie (Fondateur, Organisation, Lead, Co Lead) — argent sale uniquement.</div>
+
+    <div class="card" id="capitaine-card" style="display:none;text-align:center;"></div>
+
+    <div class="card" style="text-align:center;">
+      <h3 style="margin-bottom:14px;">⏳ Fin de semaine</h3>
+      <div id="countdown-paye" style="display:flex;justify-content:center;gap:22px;flex-wrap:wrap;"></div>
+    </div>
+
+    <div class="card">
+      <h3>🥶 Tenue officielle</h3>
+      <div class="tenue">
+        <div class="piece"><div class="sw" style="background:#f4f8ff"></div><b>Haut</b><span>Blanc</span></div>
+        <div class="piece"><div class="sw" style="background:#2a6fe0"></div><b>Bas</b><span>Bleu</span></div>
+        <div class="piece"><div class="sw" style="background:#f4f8ff"></div><b>Accessoire</b><span>Blanc, pas obligatoire</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>🏆 Objectif trésor</h3>
+      <div id="carte-tresor"></div>
+    </div>
+
+    <div class="card">
+      <div class="field" style="max-width:340px;">
+        <label>Semaine affichée</label>
+        <select id="d-semaine"></select>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>🎯 Objectifs du groupe</h3>
+      <div class="objgroupe" id="objectifs-groupe"></div>
+    </div>
+
+    <div class="card">
+      <h3>📌 Restant à faire cette semaine</h3>
+      <div style="overflow-x:auto;">
+      <table>
+        <thead><tr><th>Membre</th><th>Cotisation restante</th><th>Labos restants</th><th>Récoltes restantes</th></tr></thead>
+        <tbody id="restant-membres"></tbody>
+      </table>
+      </div>
+    </div>
+
+    <div class="grid cols-3" id="soldes" style="margin:0 auto 16px;grid-template-columns:repeat(2,1fr);max-width:600px;text-align:center;"></div>
+    <div class="grid cols-3" id="cat-cards" style="margin-bottom:16px;"></div>
+
+    <div class="card">
+      <h3>🏆 Top 3 de la semaine</h3>
+      <table>
+        <thead><tr><th></th><th>Membre</th><th>Grade</th><th>Part due</th></tr></thead>
+        <tbody id="podium-body"></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>Classement des membres</h3>
+      <table>
+        <thead><tr><th>Membre</th><th>Grade</th><th>Part due</th></tr></thead>
+        <tbody id="ranking-body"></tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
+<script src="../js/firebase-config.js"></script>
+<script src="../js/app.js"></script>
+<script>
+  const membre = initShell('dashboard', 'Dashboard');
+  if (membre) {
+    let semaineFiltre = '';
+    let dernieresListes = null;
+
+    async function chargerSemaines() {
+      const [allSnap, activeSnap] = await Promise.all([db.ref('semaines').get(), db.ref('config/semaine_active_id').get()]);
+      const all = entries(allSnap.val()).sort((a, b) => (b[1].debut || '').localeCompare(a[1].debut || ''));
+      const activeId = activeSnap.val();
+      const sel = document.getElementById('d-semaine');
+      sel.innerHTML =
+        all.map(([id, s]) => `<option value="${id}">${s.nom}${s.bloquee ? ' 🔒' : ' 🟢'}${id === activeId ? ' (active)' : ''}</option>`).join('') +
+        '<option value="">— Toutes les semaines —</option>';
+      sel.value = activeId || '';
+      semaineFiltre = sel.value;
+      sel.addEventListener('change', () => { semaineFiltre = sel.value; renderTout(); });
+    }
+
+    function renderTout() {
+      if (!dernieresListes) return;
+      const { membres, cfg, actions, labos, recoltes, bijouteries, fleecas, armureries } = dernieresListes;
+      const q = cfg.quotas;
+      const matchWeek = item => !semaineFiltre || item.semaine_id === semaineFiltre;
+      const actionsF = actions.filter(([, a]) => matchWeek(a));
+      const labosF = labos.filter(([, l]) => matchWeek(l));
+      const recoltesF = recoltes.filter(([, r]) => matchWeek(r));
+      const biF = bijouteries.filter(([, r]) => matchWeek(r));
+      const flF = fleecas.filter(([, r]) => matchWeek(r));
+      const arF = armureries.filter(([, r]) => matchWeek(r));
+
+      const totalActions = actionsF.reduce((s, [, a]) => s + (a.montant || 0), 0);
+      const totalLabos = labosF.reduce((s, [, l]) => s + (l.labos_qty || 0), 0);
+      const totalPochons = labosF.reduce((s, [, l]) => s + (l.pochons || 0), 0);
+      const totalRecoltes = recoltesF.reduce((s, [, r]) => s + (r.qty || 0), 0);
+      const somme = list => list.reduce((s, [, r]) => s + (r.montant || 0), 0);
+
+      const partParMembre = {};
+      const ajoute = (mid, p) => { if (p) partParMembre[mid] = (partParMembre[mid] || 0) + p; };
+      actionsF.forEach(([, a]) => ajoute(a.membre_id, partMembre(cfg, 'actions', a)));
+      labosF.forEach(([, l]) => ajoute(l.membre_id, partMembre(cfg, 'labos', l)));
+      recoltesF.forEach(([, r]) => ajoute(r.membre_id, partMembre(cfg, 'recoltes', r)));
+
+      document.getElementById('cat-cards').innerHTML = `
+        <div class="stat"><div class="v">${fmtMoney(totalActions)}</div><div class="l">💵 Actions</div></div>
+        <div class="stat"><div class="v">${totalLabos}</div><div class="l">🧪 Labos · ${totalPochons.toLocaleString('fr-FR')} pochons</div></div>
+        <div class="stat"><div class="v">${totalRecoltes.toLocaleString('fr-FR')}</div><div class="l">🌿 Récoltes</div></div>
+        <div class="stat"><div class="v">${fmtMoney(somme(biF))}</div><div class="l">💎 Bijouterie</div></div>
+        <div class="stat"><div class="v">${fmtMoney(somme(flF))}</div><div class="l">🏦 Banque</div></div>
+        <div class="stat"><div class="v">${fmtMoney(somme(arF))}</div><div class="l">🔫 Armurerie</div></div>
+      `;
+
+      // Objectifs du groupe
+      document.getElementById('objectifs-groupe').innerHTML = [['💎 Bijouterie', biF.length, q.bijouterie], ['🏦 Banque', flF.length, q.banque], ['🔫 Armurerie', arF.length, q.armurerie]]
+        .map(([nom, fait, cible]) => {
+          const pct = cible > 0 ? Math.min(100, Math.round(fait / cible * 100)) : 0;
+          return `<div class="row ${cible > 0 && fait >= cible ? 'ok' : ''}"><div class="nm">${nom}</div><div class="bar"><div class="fill" style="width:${pct}%;"></div></div><div class="ct">${fait}${cible > 0 ? '/' + cible : ''}</div></div>`;
+        }).join('');
+
+      // Restant à faire par membre
+      const fait = { cotisation: {}, labo: {}, recolte: {} };
+      actionsF.forEach(([, a]) => { fait.cotisation[a.membre_id] = (fait.cotisation[a.membre_id] || 0) + (a.montant || 0); });
+      labosF.forEach(([, l]) => { fait.labo[l.membre_id] = (fait.labo[l.membre_id] || 0) + (l.labos_qty || 0); });
+      recoltesF.forEach(([, r]) => { fait.recolte[r.membre_id] = (fait.recolte[r.membre_id] || 0) + (r.qty || 0); });
+      const restant = (cat, id, fmt) => {
+        const cible = q[cat] || 0;
+        if (cible <= 0) return '—';
+        const r = Math.max(0, cible - (fait[cat][id] || 0));
+        return r === 0 ? '<span style="color:var(--success);">✅ fait</span>' : fmt(r);
+      };
+      const lignes = Object.entries(membres)
+        .filter(([, m]) => m.actif !== false && !m.invisible)
+        .map(([id, m]) => `<tr>
+            <td>${gradeInfo(m.grade).emoji} ${m.prenom}</td>
+            <td class="amt">${restant('cotisation', id, fmtMoney)}</td>
+            <td class="amt">${restant('labo', id, n => n)}</td>
+            <td class="amt">${restant('recolte', id, n => n.toLocaleString('fr-FR'))}</td>
+          </tr>`).join('');
+      document.getElementById('restant-membres').innerHTML = lignes || '<tr><td colspan="4" class="empty">Aucun membre.</td></tr>';
+
+      const rows = Object.entries(partParMembre)
+        .map(([id, total]) => ({ id, total, m: membres[id] }))
+        .filter(r => r.m && !r.m.invisible)
+        .sort((a, b) => b.total - a.total);
+
+      document.getElementById('ranking-body').innerHTML = rows.length === 0
+        ? `<tr><td colspan="3" class="empty">Aucune part à verser pour cette période.</td></tr>`
+        : rows.map(r => {
+            const g = gradeInfo(r.m.grade);
+            return `<tr><td>${r.m.prenom}</td><td>${g.emoji} ${g.nom}</td><td class="amt">${fmtMoney(r.total)}</td></tr>`;
+          }).join('');
+
+      const medailles = ['🥇', '🥈', '🥉'];
+      document.getElementById('podium-body').innerHTML = rows.length === 0
+        ? `<tr><td colspan="4" class="empty">Aucune part à verser pour cette période.</td></tr>`
+        : rows.slice(0, 3).map((r, i) => {
+            const g = gradeInfo(r.m.grade);
+            return `<tr><td style="font-size:20px;">${medailles[i]}</td><td>${r.m.prenom}</td><td>${g.emoji} ${g.nom}</td><td class="amt">${fmtMoney(r.total)}</td></tr>`;
+          }).join('');
+    }
+
+    Promise.all([
+      db.ref('membres').get(), db.ref('actions').get(), db.ref('labos').get(), db.ref('recoltes').get(),
+      db.ref('bijouteries').get(), db.ref('fleecas').get(), db.ref('armureries').get(), db.ref('config').get()
+    ]).then(([mSnap, aSnap, lSnap, rSnap, biSnap, flSnap, arSnap, cSnap]) => {
+      const ok = ([, i]) => i.resultat !== 'Échec';
+      const membres = Object.fromEntries(entries(mSnap.val()));
+      const cfg = getConfig(cSnap.val());
+      const actions = entries(aSnap.val()).filter(ok);
+      const labos = entries(lSnap.val()).filter(ok);
+      const recoltes = entries(rSnap.val());
+      const bijouteries = entries(biSnap.val()).filter(ok);
+      const fleecas = entries(flSnap.val()).filter(ok);
+      const armureries = entries(arSnap.val()).filter(ok);
+
+      dernieresListes = { membres, cfg, actions, labos, recoltes, bijouteries, fleecas, armureries };
+      chargerSemaines().then(renderTout);
+
+      // Membre du jour (surprise cosmétique)
+      const membresActifs = Object.entries(membres).filter(([id, m]) => m.actif !== false && !m.invisible);
+      const mj = capitaineDuJour(membresActifs);
+      if (mj) {
+        const [, m] = mj;
+        const g = gradeInfo(m.grade);
+        document.getElementById('capitaine-card').style.display = 'block';
+        document.getElementById('capitaine-card').innerHTML =
+          `<div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:3px;color:var(--muted);">МОРОЗОВ · MEMBRE DU JOUR</div>
+           <div style="font-family:'Russo One',sans-serif;font-size:28px;color:#fff;margin-top:4px;text-shadow:0 0 14px var(--glow);">${g.emoji} ${m.prenom}</div>`;
+      }
+
+      // Objectif trésor — total historique (toutes semaines, hors échecs)
+      const total =
+        actions.reduce((s, [, a]) => s + (a.montant || 0), 0) +
+        labos.reduce((s, [, l]) => s + (l.montant || 0), 0) +
+        [bijouteries, fleecas, armureries].reduce((s, l) => s + l.reduce((t, [, r]) => t + (r.montant || 0), 0), 0);
+      renderCarteTresor(total);
+    });
+
+    function renderCarteTresor(total) {
+      const etapes = [
+        { seuil: 0,        label: 'Départ', emoji: '❄️' },
+        { seuil: 500000,   label: '$500k',  emoji: '💼' },
+        { seuil: 1000000,  label: '$1M',    emoji: '💰' },
+        { seuil: 5000000,  label: '$5M',    emoji: '💎' },
+        { seuil: 10000000, label: '$10M',   emoji: '🏦' },
+        { seuil: 50000000, label: '$50M',   emoji: '👑' },
+      ];
+      const positions = etapes.map((e, i) => (i / (etapes.length - 1)) * 100);
+      let pct = positions[0];
+      for (let i = 0; i < etapes.length - 1; i++) {
+        const a = etapes[i], b = etapes[i + 1];
+        if (total >= a.seuil && total <= b.seuil) {
+          pct = positions[i] + ((total - a.seuil) / (b.seuil - a.seuil)) * (positions[i + 1] - positions[i]);
+          break;
+        }
+        if (total > etapes[etapes.length - 1].seuil) pct = 100;
+      }
+      const iles = etapes.map((e, i) => `
+        <div class="tresor-ile ${total >= e.seuil ? 'atteinte' : ''}" style="left:${positions[i]}%;">
+          <span>${e.emoji}</span>
+          <span class="label">${e.label}</span>
+        </div>`).join('');
+      document.getElementById('carte-tresor').innerHTML = `
+        <div class="tresor-route">
+          <div class="tresor-ligne"></div>
+          ${iles}
+          <div class="tresor-bateau" style="left:${pct}%;">🚙</div>
+        </div>
+        <div class="tresor-progres">${fmtMoney(total)} gagnés au total — objectif $50M</div>
+      `;
+    }
+
+    computeSoldes().then(({ solde_sale, solde_propre }) => {
+      document.getElementById('soldes').innerHTML = `
+        <div class="stat"><div class="v">${fmtMoney(solde_sale)}</div><div class="l">🕶️ Argent sale</div></div>
+        <div class="stat"><div class="v">${fmtMoney(solde_propre)}</div><div class="l">💵 Argent propre</div></div>
+      `;
+    });
+
+    // ---- Compte à rebours vers la fin de semaine (dimanche 19h) ----
+    async function demarrerCountdown() {
+      const activeId = (await db.ref('config/semaine_active_id').get()).val();
+      if (!activeId) return;
+      const semaine = (await db.ref('semaines/' + activeId).get()).val();
+      if (!semaine || !semaine.fin) return;
+      const cible = new Date(semaine.fin).getTime();
+
+      function tick() {
+        const diff = cible - Date.now();
+        const el = document.getElementById('countdown-paye');
+        if (diff <= 0) {
+          el.innerHTML = `<div class="cd-bloc"><div class="n">❄️</div><div class="l">Nouvelle semaine imminente</div></div>`;
+          return;
+        }
+        const j = Math.floor(diff / 86400000);
+        const h = Math.floor((diff % 86400000) / 3600000);
+        const m = Math.floor((diff % 3600000) / 60000);
+        const s = Math.floor((diff % 60000) / 1000);
+        el.innerHTML = `
+          <div class="cd-bloc"><div class="n">${j}</div><div class="l">Jours</div></div>
+          <div class="cd-bloc"><div class="n">${String(h).padStart(2,'0')}</div><div class="l">Heures</div></div>
+          <div class="cd-bloc"><div class="n">${String(m).padStart(2,'0')}</div><div class="l">Minutes</div></div>
+          <div class="cd-bloc"><div class="n">${String(s).padStart(2,'0')}</div><div class="l">Secondes</div></div>
+        `;
+      }
+      tick();
+      setInterval(tick, 1000);
+    }
+    demarrerCountdown();
+  }
+</script>
+</body>
+</html>

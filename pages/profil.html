@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Morosov — Profil</title>
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar" id="sidebar"></aside>
+  <main class="main">
+    <div class="pagehead">
+      <h2 id="pagehead-title">Profil</h2>
+      <div class="rule"></div>
+    </div>
+
+    <div class="grid cols-4" id="stats"></div>
+
+    <div class="card">
+      <h3>Mon compte</h3>
+      <form class="entry" id="form-pass">
+        <div class="field"><label>Nouveau mot de passe</label><input type="text" id="p-pass" placeholder="••••••••" required></div>
+        <button class="submit" type="submit">Changer le mot de passe</button>
+      </form>
+    </div>
+  </main>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
+<script src="../js/firebase-config.js"></script>
+<script src="../js/app.js"></script>
+<script>
+  const membre = initShell('profil', 'Profil');
+  if (membre) {
+    Promise.all([
+      db.ref('actions').get(),
+      db.ref('labos').get(),
+      db.ref('recoltes').get(),
+      db.ref('config').get()
+    ]).then(([aSnap, lSnap, rSnap, cSnap]) => {
+      const cfg = getConfig(cSnap.val());
+      const mine = x => x.membre_id === membre.id;
+
+      const totalActions = entries(aSnap.val()).filter(([id, a]) => mine(a)).reduce((s, [id, a]) => s + partMembre(cfg, 'actions', a), 0);
+      const totalLabos = entries(lSnap.val()).filter(([id, l]) => mine(l)).reduce((s, [id, l]) => s + partMembre(cfg, 'labos', l), 0);
+      const totalRecoltes = entries(rSnap.val()).filter(([id, r]) => mine(r)).reduce((s, [id, r]) => s + partMembre(cfg, 'recoltes', r), 0);
+
+      document.getElementById('stats').innerHTML = `
+        <div class="stat"><div class="v">${fmtMoney(totalActions + totalLabos + totalRecoltes)}</div><div class="l">Ma part totale</div></div>
+        <div class="stat"><div class="v">${fmtMoney(totalActions)}</div><div class="l">💵 Actions</div></div>
+        <div class="stat"><div class="v">${fmtMoney(totalLabos)}</div><div class="l">🧪 Labos</div></div>
+        <div class="stat"><div class="v">${fmtMoney(totalRecoltes)}</div><div class="l">🌿 Récoltes</div></div>
+      `;
+    });
+
+    document.getElementById('form-pass').addEventListener('submit', e => {
+      e.preventDefault();
+      const pass = document.getElementById('p-pass').value;
+      if (!pass) return;
+      db.ref('membres/' + membre.id).update({ mot_de_passe: pass }).then(() => {
+        document.getElementById('p-pass').value = '';
+        toast('Mot de passe changé.');
+      });
+    });
+  }
+</script>
+</body>
+</html>

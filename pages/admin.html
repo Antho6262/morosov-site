@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Morosov — Admin</title>
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar" id="sidebar"></aside>
+  <main class="main">
+    <div class="pagehead">
+      <h2 id="pagehead-title">Admin</h2>
+      <div class="rule"></div>
+    </div>
+
+    <div class="tabs">
+      <button data-tab="semaines" class="active">🗓️ Semaines</button>
+      <button data-tab="taux">💰 Taux</button>
+      <button data-tab="tresorerie">💵 Trésorerie</button>
+      <button data-tab="quotas">📋 Quotas</button>
+      <button data-tab="typesaction">💵 Types d'action</button>
+      <button data-tab="membres">👥 Membres</button>
+      <button data-tab="stockadmin">📦 Stock</button>
+      <button data-tab="permissions">👁️ Permissions</button>
+    </div>
+
+    <!-- SEMAINES -->
+    <div class="tabpanel active" id="panel-semaines">
+      <div class="card">
+        <h3>Semaine en cours</h3>
+        <div id="semaine-active"></div>
+        <div style="margin-top:14px;"><button class="ghost" id="btn-bloquer-semaine" title="Clôture la semaine en cours avant sa date de fin et démarre une nouvelle semaine">Bloquer la semaine en cours maintenant</button></div>
+        <div class="note-hint">Nouvelle semaine créée automatiquement chaque dimanche à 19h (ou dès qu'un membre se connecte après). Bloquer maintenant force la clôture avant terme.</div>
+      </div>
+      <div class="card">
+        <h3>Historique</h3>
+        <table>
+          <thead><tr><th>Semaine</th><th>Début</th><th>Fin</th><th>Statut</th></tr></thead>
+          <tbody id="semaine-liste"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAUX -->
+    <div class="tabpanel" id="panel-taux">
+      <div class="card">
+        <h3>Taux & rémunération</h3>
+        <div class="grid cols-3">
+          <div class="field"><label>% par action (montant ramené)</label><input type="number" id="cfg-percent" min="0" max="100" step="1"></div>
+          <div class="field"><label>$ par labo lancé</label><input type="number" id="cfg-labo" min="0" step="1"></div>
+          <div class="field"><label>$ par unité récoltée</label><input type="number" id="cfg-recolte" min="0" step="1"></div>
+          <div class="field"><label>% frais de blanchiment</label><input type="number" id="cfg-blanchiment" min="0" max="100" step="1"></div>
+        </div>
+        <div class="note-hint">À 0 = aucune part versée au membre sur cette ligne. À renseigner dès que le lead a donné les montants de paye de fin de semaine. Le montant des actions reste entièrement au groupe, il sert aussi à la cotisation.</div>
+        <div style="margin-top:16px;"><button class="submit" id="cfg-save">Enregistrer</button></div>
+      </div>
+    </div>
+
+    <!-- TRÉSORERIE -->
+    <div class="tabpanel" id="panel-tresorerie">
+      <div class="grid cols-3" id="tresorerie-soldes" style="margin-bottom:18px;"></div>
+
+      <div class="card">
+        <h3>Ajustement manuel</h3>
+        <form class="entry" id="form-ajustement">
+          <div class="field"><label>Type</label>
+            <select id="tr-type"><option value="Entrée">➕ Entrée (ajouter)</option><option value="Sortie">➖ Sortie (retirer)</option></select>
+          </div>
+          <div class="field"><label>Argent</label>
+            <select id="tr-argent"><option value="sale">🕶️ Sale</option><option value="propre">💵 Propre</option></select>
+          </div>
+          <div class="field"><label>Montant ($)</label><input type="number" id="tr-montant" min="0" step="1" required></div>
+          <div class="field"><label>Description</label><input type="text" id="tr-desc" placeholder="Ex: remise à zéro, argent trouvé..."></div>
+          <button class="submit" type="submit">Enregistrer</button>
+        </form>
+        <div class="note-hint">Sert à corriger le solde à la main (erreur, remise à niveau avec l'argent réel du groupe...). N'affecte pas le tracker ni la paye, seulement le solde global.</div>
+      </div>
+
+      <div class="card">
+        <h3>Historique des ajustements</h3>
+        <table>
+          <thead><tr><th>Type</th><th>Argent</th><th>Montant</th><th>Description</th><th>Par</th><th>Date</th><th></th></tr></thead>
+          <tbody id="tresorerie-liste"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- QUOTAS -->
+    <div class="tabpanel" id="panel-quotas">
+      <div class="card">
+        <h3>Objectifs hebdomadaires</h3>
+        <div class="grid cols-3">
+          <div class="field"><label>💵 Cotisation par membre ($)</label><input type="number" id="q-cotisation" min="0" step="1"></div>
+          <div class="field"><label>🧪 Labos par membre</label><input type="number" id="q-labo" min="0" step="1"></div>
+          <div class="field"><label>🌿 Récoltes par membre (total)</label><input type="number" id="q-recolte" min="0" step="1"></div>
+          <div class="field"><label>💎 Bijouteries (groupe)</label><input type="number" id="q-bijouterie" min="0" step="1"></div>
+          <div class="field"><label>🏦 Banques (groupe)</label><input type="number" id="q-banque" min="0" step="1"></div>
+          <div class="field"><label>🔫 Armureries (groupe)</label><input type="number" id="q-armurerie" min="0" step="1"></div>
+        </div>
+        <div class="note-hint">Un objectif à 0 n'affiche pas de barre de progression pour cette catégorie. Remis à zéro à chaque nouvelle semaine.</div>
+        <div style="margin-top:16px;"><button class="submit" id="q-save">Enregistrer</button></div>
+      </div>
+    </div>
+
+    <!-- TYPES D'ACTION -->
+    <div class="tabpanel" id="panel-typesaction">
+      <div class="card">
+        <h3>Types d'action</h3>
+        <form id="form-type-action" class="grid cols-3">
+          <div class="field"><label>Emoji</label><input type="text" id="ta-emoji" maxlength="4" placeholder="💎"></div>
+          <div class="field"><label>Nom</label><input type="text" id="ta-nom" required placeholder="Supérette"></div>
+          <div class="field" style="align-self:end;"><button class="submit" type="submit">Ajouter</button></div>
+        </form>
+        <table style="margin-top:16px;">
+          <thead><tr><th>Type</th><th></th></tr></thead>
+          <tbody id="ta-table"></tbody>
+        </table>
+        <div class="note-hint">Ces types apparaissent dans la liste « Type » du formulaire Action du tracker.</div>
+      </div>
+    </div>
+
+    <!-- MEMBRES -->
+    <div class="tabpanel" id="panel-membres">
+      <div class="card">
+        <h3>Membres</h3>
+        <form class="entry" id="form-member">
+          <div class="field"><label>Pseudo</label><input type="text" id="m-name" placeholder="Pseudo" required title="Pseudo utilisé pour se connecter"></div>
+          <div class="field"><label>Mot de passe</label><input type="text" id="m-pass" placeholder="Mot de passe" required title="Mot de passe de connexion du membre"></div>
+          <div class="field"><label>Grade</label><select id="m-grade" title="Grade initial du membre"></select></div>
+          <button class="submit" type="submit" title="Crée le compte et l'ajoute au groupe">Ajouter au groupe</button>
+        </form>
+        <div id="member-list" style="margin-top:16px;"></div>
+      </div>
+    </div>
+
+    <!-- STOCK (création) -->
+    <div class="tabpanel" id="panel-stockadmin">
+      <div class="card">
+        <h3>Nouvelle catégorie de stock</h3>
+        <form class="entry" id="form-cat-admin">
+          <div class="field"><label>Nom</label><input type="text" id="ca-nom" placeholder="Ex: Drogue" required></div>
+          <div class="field"><label>Emoji</label><input type="text" id="ca-emoji" placeholder="💊" maxlength="4"></div>
+          <button class="submit" type="submit">Créer</button>
+        </form>
+      </div>
+      <div id="stockadmin-list"></div>
+    </div>
+
+    <!-- PERMISSIONS -->
+    <div class="tabpanel" id="panel-permissions">
+      <div class="card">
+        <h3>Visibilité des pages par grade</h3>
+        <div class="note-hint" style="margin-bottom:14px;">Coché = visible pour ce grade. Le Fondateur et les comptes Admin voient toujours tout, quoi qu'il arrive. Par défaut (rien décoché) tout le monde voit tout.</div>
+        <div style="overflow-x:auto;">
+          <table id="perm-table"></table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
+<script src="../js/firebase-config.js"></script>
+<script src="../js/app.js"></script>
+<script>
+  const membre = initShell('admin', 'Admin');
+  if (membre) {
+
+    document.querySelectorAll('.tabs button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tabpanel').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+      });
+    });
+
+    // ---- Semaines ----
+    function renderSemaines() {
+      Promise.all([
+        db.ref('config/semaine_active_id').get(),
+        db.ref('semaines').get()
+      ]).then(([activeSnap, allSnap]) => {
+        const activeId = activeSnap.val();
+        const all = entries(allSnap.val()).sort((a, b) => (b[1].debut || '').localeCompare(a[1].debut || ''));
+
+        const active = all.find(([id]) => id === activeId);
+        document.getElementById('semaine-active').innerHTML = active
+          ? `<div class="badge admin" style="font-size:14px;">🗓️ Semaine active : ${active[1].nom}</div>`
+          : `<div class="empty">Aucune semaine active pour l'instant — elle sera créée automatiquement.</div>`;
+
+        document.getElementById('semaine-liste').innerHTML = all.length === 0
+          ? `<tr><td colspan="4" class="empty">Aucune semaine enregistrée.</td></tr>`
+          : all.map(([id, w]) => `
+              <tr>
+                <td>${w.nom}${id === activeId ? ' <span class="badge admin">Active</span>' : ''}</td>
+                <td>${w.debut ? new Date(w.debut).toLocaleDateString('fr-FR') : '—'}</td>
+                <td>${w.fin ? new Date(w.fin).toLocaleDateString('fr-FR') : '—'}</td>
+                <td>${w.bloquee ? '🔒 Bloquée' : '🟢 En cours'}</td>
+              </tr>`).join('');
+      });
+    }
+    renderSemaines();
+
+    document.getElementById('btn-bloquer-semaine').addEventListener('click', async () => {
+      const activeId = (await db.ref('config/semaine_active_id').get()).val();
+      if (!activeId) { toast('Aucune semaine active.'); return; }
+      const semaine = (await db.ref('semaines/' + activeId).get()).val();
+      const ok = confirm(`Bloquer "${semaine ? semaine.nom : 'la semaine en cours'}" maintenant et démarrer une nouvelle semaine ?`);
+      if (!ok) return;
+      await db.ref('semaines/' + activeId).update({ bloquee: true, closedAt: new Date().toISOString() });
+      await ensureActiveWeek();
+      toast('Semaine bloquée, nouvelle semaine créée.');
+      renderSemaines();
+    });
+
+    // ---- Trésorerie ----
+    function refreshTresorerieSoldes() {
+      computeSoldes().then(({ solde_sale, solde_propre }) => {
+        document.getElementById('tresorerie-soldes').innerHTML = `
+          <div class="stat"><div class="v">${fmtMoney(solde_sale)}</div><div class="l">🕶️ Argent sale</div></div>
+          <div class="stat"><div class="v">${fmtMoney(solde_propre)}</div><div class="l">💵 Argent propre</div></div>
+        `;
+      });
+    }
+    refreshTresorerieSoldes();
+
+    document.getElementById('form-ajustement').addEventListener('submit', e => {
+      e.preventDefault();
+      const type = document.getElementById('tr-type').value;
+      const argent = document.getElementById('tr-argent').value; // 'sale' ou 'propre'
+      const montant = parseFloat(document.getElementById('tr-montant').value);
+      const description = document.getElementById('tr-desc').value.trim();
+      if (isNaN(montant) || montant <= 0) return;
+      const node = argent === 'propre' ? 'argent_propre' : 'argent_sale';
+      db.ref(node + '/' + uid()).set({
+        type, montant, description, responsable: membre.prenom, date: new Date().toISOString()
+      }).then(() => {
+        toast('Ajustement enregistré.');
+        document.getElementById('form-ajustement').reset();
+        refreshTresorerieSoldes();
+      });
+    });
+
+    function renderTresorerieListe() {
+      Promise.all([db.ref('argent_sale').get(), db.ref('argent_propre').get()]).then(([saleSnap, propreSnap]) => {
+        const rows = [
+          ...entries(saleSnap.val()).map(([id, m]) => ({ id, node: 'argent_sale', argentLabel: '🕶️ Sale', ...m })),
+          ...entries(propreSnap.val()).map(([id, m]) => ({ id, node: 'argent_propre', argentLabel: '💵 Propre', ...m })),
+        ].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
+        document.getElementById('tresorerie-liste').innerHTML = rows.length === 0
+          ? `<tr><td colspan="7" class="empty">Aucun ajustement manuel pour le moment.</td></tr>`
+          : rows.map(r => `
+              <tr>
+                <td>${r.type === 'Sortie' ? '➖ Sortie' : '➕ Entrée'}</td>
+                <td>${r.argentLabel}</td>
+                <td class="amt">${fmtMoney(r.montant)}</td>
+                <td>${r.description || '—'}</td>
+                <td>${r.responsable || '—'}</td>
+                <td>${fmtDateHeure(r.date)}</td>
+                <td><button class="del" data-id="${r.id}" data-node="${r.node}">✕</button></td>
+              </tr>`).join('');
+      });
+    }
+    renderTresorerieListe();
+
+    document.body.addEventListener('click', e => {
+      if (e.target.matches('#tresorerie-liste .del')) {
+        db.ref(e.target.dataset.node + '/' + e.target.dataset.id).remove().then(() => {
+          renderTresorerieListe();
+          refreshTresorerieSoldes();
+        });
+      }
+    });
+
+    // grades du formulaire membre
+    document.getElementById('m-grade').innerHTML = GRADES_DEFAUT
+      .map(g => `<option value="${g.id}">${g.emoji} ${g.nom}</option>`).join('');
+
+    // ---- config (taux) ----
+    db.ref('config').on('value', snap => {
+      const cfg = getConfig(snap.val());
+      document.getElementById('cfg-percent').value = cfg.taux_action_pct;
+      document.getElementById('cfg-labo').value = cfg.taux_labo;
+      document.getElementById('cfg-recolte').value = cfg.taux_recolte;
+      document.getElementById('cfg-blanchiment').value = cfg.blanchiment_taux;
+    });
+
+    document.getElementById('cfg-save').addEventListener('click', () => {
+      const lire = id => parseFloat(document.getElementById(id).value);
+      const champs = { taux_action_pct: lire('cfg-percent'), taux_labo: lire('cfg-labo'), taux_recolte: lire('cfg-recolte'), blanchiment_taux: lire('cfg-blanchiment') };
+      const update = {};
+      Object.entries(champs).forEach(([k, v]) => { if (!isNaN(v)) update[k] = v; });
+      db.ref('config').update(update);
+      toast('Taux enregistrés.');
+    });
+
+    // ---- quotas par catégorie ----
+    const QUOTA_FIELDS = {
+      cotisation: 'q-cotisation',
+      labo: 'q-labo',
+      recolte: 'q-recolte',
+      bijouterie: 'q-bijouterie',
+      banque: 'q-banque',
+      armurerie: 'q-armurerie',
+    };
+    db.ref('config/quotas').on('value', snap => {
+      const q = Object.assign({}, QUOTAS_DEFAUT, snap.val() || {});
+      Object.entries(QUOTA_FIELDS).forEach(([key, id]) => {
+        document.getElementById(id).value = q[key] || '';
+      });
+    });
+    document.getElementById('q-save').addEventListener('click', () => {
+      const update = {};
+      Object.entries(QUOTA_FIELDS).forEach(([key, id]) => {
+        const v = parseInt(document.getElementById(id).value, 10);
+        update[key] = isNaN(v) ? 0 : v;
+      });
+      db.ref('config/quotas').set(update);
+      toast('Objectifs enregistrés.');
+    });
+
+    // ---- types d'action ----
+    const TYPES_DEFAUT = TYPES_ACTION_DEFAUT;
+    let typesActionActuels = null;
+    db.ref('config/types_action').on('value', snap => {
+      typesActionActuels = snap.val();
+      const liste = typesActionActuels ? Object.entries(typesActionActuels).map(([id, t]) => [id, t]) : null;
+      const rows = liste
+        ? liste.map(([id, t]) => `<tr><td>${t.emoji || ''} ${t.nom}</td><td><button class="del" data-id="${id}" data-type="type-action">✕</button></td></tr>`).join('')
+        : TYPES_DEFAUT.map(t => `<tr><td>${t.emoji} ${t.nom}</td><td class="empty">par défaut</td></tr>`).join('');
+      document.getElementById('ta-table').innerHTML = rows;
+    });
+    document.getElementById('form-type-action').addEventListener('submit', async e => {
+      e.preventDefault();
+      const nom = document.getElementById('ta-nom').value.trim();
+      const emoji = document.getElementById('ta-emoji').value.trim();
+      if (!nom) return;
+      if (!typesActionActuels) { // première personnalisation : on garde les types par défaut
+        for (const t of TYPES_DEFAUT) await db.ref('config/types_action').push(t);
+      }
+      await db.ref('config/types_action').push({ nom, emoji });
+      document.getElementById('ta-nom').value = '';
+      document.getElementById('ta-emoji').value = '';
+      toast('Type ajouté.');
+    });
+    document.getElementById('ta-table').addEventListener('click', e => {
+      if (e.target.matches('.del[data-type="type-action"]')) db.ref('config/types_action/' + e.target.dataset.id).remove();
+    });
+
+    // ---- membres ----
+    document.getElementById('form-member').addEventListener('submit', e => {
+      e.preventDefault();
+      const prenom = document.getElementById('m-name').value.trim();
+      const mot_de_passe = document.getElementById('m-pass').value;
+      const grade = document.getElementById('m-grade').value;
+      if (!prenom || !mot_de_passe) return;
+      db.ref('membres/' + uid()).set({ prenom, mot_de_passe, grade, role: 'membre', actif: true });
+      document.getElementById('m-name').value = '';
+      document.getElementById('m-pass').value = '';
+    });
+
+    db.ref('membres').on('value', snap => {
+      const list = entries(snap.val());
+      const el = document.getElementById('member-list');
+      if (list.length === 0) {
+        el.innerHTML = '<div class="empty">Aucun membre pour le moment.</div>';
+        return;
+      }
+      el.innerHTML = list.map(([id, m]) => {
+        const g = gradeInfo(m.grade);
+        return `<div class="member-row">
+          <span class="member-name">${m.prenom} ${m.role === 'admin' ? '<span class="badge admin">Admin</span>' : ''}</span>
+          <span style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <select class="grade-select" data-id="${id}" title="Change le grade de ce membre">
+              ${GRADES_DEFAUT.map(gr => `<option value="${gr.id}" ${gr.id === m.grade ? 'selected' : ''}>${gr.emoji} ${gr.nom}</option>`).join('')}
+            </select>
+            <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--muted);" title="Donne l'accès total au site (page Admin, toutes les permissions ignorées)">
+              <input type="checkbox" class="admin-toggle" data-id="${id}" ${m.role === 'admin' ? 'checked' : ''}> Admin
+            </label>
+            <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--muted);" title="Masque ce membre des classements, du Top 3 et des stats (il reste actif et peut se connecter normalement)">
+              <input type="checkbox" class="invisible-toggle" data-id="${id}" ${m.invisible ? 'checked' : ''}> Invisible
+            </label>
+            <button class="del" data-id="${id}" data-type="membres" title="Supprime définitivement ce membre">✕</button>
+          </span>
+        </div>`;
+      }).join('');
+
+      el.querySelectorAll('.grade-select').forEach(sel => {
+        sel.addEventListener('change', () => db.ref('membres/' + sel.dataset.id).update({ grade: sel.value }));
+      });
+      el.querySelectorAll('.admin-toggle').forEach(chk => {
+        chk.addEventListener('change', () => db.ref('membres/' + chk.dataset.id).update({ role: chk.checked ? 'admin' : 'membre' }));
+      });
+      el.querySelectorAll('.invisible-toggle').forEach(chk => {
+        chk.addEventListener('change', () => db.ref('membres/' + chk.dataset.id).update({ invisible: chk.checked }));
+      });
+    });
+
+    document.body.addEventListener('click', e => {
+      if (e.target.classList.contains('del') && e.target.dataset.type === 'membres') {
+        if (e.target.dataset.id === membre.id) { toast("Tu ne peux pas te supprimer toi-même."); return; }
+        db.ref('membres/' + e.target.dataset.id).remove();
+      }
+    });
+
+    // ---- Stock (création, catégories + produits) ----
+    document.getElementById('form-cat-admin').addEventListener('submit', e => {
+      e.preventDefault();
+      const nom = document.getElementById('ca-nom').value.trim();
+      const emoji = document.getElementById('ca-emoji').value.trim() || '📦';
+      if (!nom) return;
+      db.ref('stock/' + uid()).set({ nom, emoji, produits: {} });
+      document.getElementById('form-cat-admin').reset();
+    });
+
+    db.ref('stock').on('value', snap => {
+      const cats = entries(snap.val());
+      const el = document.getElementById('stockadmin-list');
+      if (cats.length === 0) {
+        el.innerHTML = '<div class="card"><div class="empty">Aucune catégorie pour le moment.</div></div>';
+        return;
+      }
+      el.innerHTML = cats.map(([catId, cat]) => {
+        const produits = entries(cat.produits);
+        return `<div class="card">
+          <h3>${cat.emoji || '📦'} ${cat.nom} <button class="del" data-cat="${catId}" data-type="cat" style="float:right;">✕</button></h3>
+          <div class="prod-grid">
+            ${produits.length === 0 ? `<div class="empty">Aucun produit.</div>` :
+              produits.map(([pid, p]) => `
+                <div class="prod-card">
+                  <div class="prod-head">
+                    <div class="prod-nom">${p.nom}</div>
+                    <button class="del" data-cat="${catId}" data-prod="${pid}" data-type="prod" title="Supprimer">✕</button>
+                  </div>
+                  <div class="prod-row"><span>Prix</span><b>${fmtMoney(p.prix)}</b></div>
+                </div>`).join('')}
+          </div>
+          <form class="entry form-prod-admin" data-cat="${catId}" style="margin-top:14px;">
+            <div class="field"><label>Nom</label><input type="text" class="np-nom" required></div>
+            <div class="field"><label>Prix</label><input type="number" class="np-prix" min="0" step="1" required></div>
+            <button class="submit" type="submit">Ajouter</button>
+          </form>
+        </div>`;
+      }).join('');
+
+      el.querySelectorAll('.form-prod-admin').forEach(form => {
+        form.addEventListener('submit', e => {
+          e.preventDefault();
+          const catId = form.dataset.cat;
+          const nom = form.querySelector('.np-nom').value.trim();
+          const prix = parseFloat(form.querySelector('.np-prix').value);
+          if (!nom || isNaN(prix)) return;
+          db.ref(`stock/${catId}/produits/${uid()}`).set({ nom, prix, stock: 0 });
+        });
+      });
+    });
+
+    document.body.addEventListener('click', e => {
+      if (e.target.matches('.del[data-type="cat"]')) db.ref('stock/' + e.target.dataset.cat).remove();
+      if (e.target.matches('.del[data-type="prod"]')) db.ref(`stock/${e.target.dataset.cat}/produits/${e.target.dataset.prod}`).remove();
+    });
+
+    // ---- Permissions ----
+    const PERM_PAGES = [
+      { key: 'tracker', label: 'Tracker' },
+      { key: 'stock', label: 'Stock' },
+      { key: 'transactions', label: 'Transactions' },
+      { key: 'blanchiment', label: 'Blanchiment' },
+      { key: 'stats', label: 'Stats' },
+      { key: 'paye', label: 'Paye' },
+      { key: 'taxes', label: 'Taxes' },
+    ];
+
+    function renderPermissions() {
+      db.ref('permissions').get().then(snap => {
+        const perms = snap.val() || {};
+        const head = `<thead><tr><th>Grade</th>${PERM_PAGES.map(p => `<th>${p.label}</th>`).join('')}</tr></thead>`;
+        const body = GRADES_DEFAUT.map(g => `
+          <tr>
+            <td>${g.emoji} ${g.nom}</td>
+            ${PERM_PAGES.map(p => {
+              const val = (perms[g.id] || {})[p.key];
+              const checked = val !== false; // par défaut visible
+              return `<td style="text-align:center;"><input type="checkbox" class="perm-check" data-grade="${g.id}" data-page="${p.key}" ${checked ? 'checked' : ''}></td>`;
+            }).join('')}
+          </tr>`).join('');
+        document.getElementById('perm-table').innerHTML = head + '<tbody>' + body + '</tbody>';
+
+        document.querySelectorAll('.perm-check').forEach(chk => {
+          chk.addEventListener('change', () => {
+            db.ref(`permissions/${chk.dataset.grade}/${chk.dataset.page}`).set(chk.checked);
+          });
+        });
+      });
+    }
+    renderPermissions();
+  }
+</script>
+</body>
+</html>

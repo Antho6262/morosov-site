@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Morosov — Stats & Quotas</title>
+<link rel="stylesheet" href="../css/style.css">
+<style>
+  .bar-wrap{background:var(--bg-1);border:1px solid var(--line);border-radius:20px;height:10px;overflow:hidden;width:70px;}
+  .bar-fill{height:100%;background:linear-gradient(90deg, var(--sunset-2), var(--gold));}
+  .quota-cell{display:flex;flex-direction:column;align-items:center;gap:3px;}
+  .quota-cell .n{font-family:'JetBrains Mono',monospace;font-size:12px;}
+  .quota-cell .n.ok{color:var(--gold);font-weight:600;}
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar" id="sidebar"></aside>
+  <main class="main">
+    <div class="pagehead">
+      <h2 id="pagehead-title">Stats & Quotas</h2>
+      <div class="rule"></div>
+    </div>
+
+    <div class="card">
+      <div class="field" style="max-width:340px;">
+        <label>Semaine affichée</label>
+        <select id="q-semaine"></select>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button data-tab="quotas" class="active">📋 Quotas</button>
+      <button data-tab="stats">📊 Stats</button>
+    </div>
+
+    <div class="tabpanel active" id="panel-quotas">
+      <div class="note-hint" style="margin-bottom:16px;">Les objectifs se configurent dans Admin → Quotas. Remis à zéro à chaque nouvelle semaine.</div>
+      <div class="card">
+        <h3>Objectifs du groupe</h3>
+        <div class="objgroupe" id="objectifs-groupe"></div>
+      </div>
+      <div class="card">
+        <h3>Progression des membres</h3>
+        <div style="overflow-x:auto;">
+        <table style="font-size:13px;">
+          <thead><tr>
+            <th>Membre</th>
+            <th>💵 Cotisation</th>
+            <th>🧪 Labos</th>
+            <th>🌿 Récoltes</th>
+          </tr></thead>
+          <tbody id="quota-body"></tbody>
+        </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="tabpanel" id="panel-stats">
+      <div class="grid cols-4" id="stat-cards"></div>
+      <div class="card">
+        <h3>Meilleurs en actions ($)</h3>
+        <table><thead><tr><th>Membre</th><th>Ramené</th></tr></thead><tbody id="top-actions"></tbody></table>
+      </div>
+      <div class="card">
+        <h3>Meilleurs en labos</h3>
+        <table><thead><tr><th>Membre</th><th>Labos lancés</th></tr></thead><tbody id="top-labos"></tbody></table>
+      </div>
+      <div class="card">
+        <h3>Meilleurs récolteurs</h3>
+        <table><thead><tr><th>Membre</th><th>Récoltes</th></tr></thead><tbody id="top-recoltes"></tbody></table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
+<script src="../js/firebase-config.js"></script>
+<script src="../js/app.js"></script>
+<script>
+  const membre = initShell('stats', 'Stats & Quotas');
+  if (membre) {
+    document.querySelectorAll('.tabs button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tabpanel').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+      });
+    });
+
+    let semaineFiltre = '';
+    let data = null; // { membres, cfg, actions, labos, recoltes, bijouteries, fleecas, armureries }
+
+    async function chargerSemaines() {
+      const [allSnap, activeSnap] = await Promise.all([db.ref('semaines').get(), db.ref('config/semaine_active_id').get()]);
+      const all = entries(allSnap.val()).sort((a, b) => (b[1].debut || '').localeCompare(a[1].debut || ''));
+      const activeId = activeSnap.val();
+      const sel = document.getElementById('q-semaine');
+      sel.innerHTML =
+        all.map(([id, s]) => `<option value="${id}">${s.nom}${s.bloquee ? ' 🔒' : ' 🟢'}${id === activeId ? ' (active)' : ''}</option>`).join('') +
+        '<option value="">— Toutes les semaines —</option>';
+      sel.value = activeId || '';
+      semaineFiltre = sel.value;
+      sel.addEventListener('change', () => { semaineFiltre = sel.value; renderStats(); renderQuotas(); });
+    }
+
+    const matchWeek = item => !semaineFiltre || item.semaine_id === semaineFiltre;
+    const sommePar = (list, cle) => { const o = {}; list.filter(([, i]) => matchWeek(i)).forEach(([, i]) => { o[i.membre_id] = (o[i.membre_id] || 0) + cle(i); }); return o; };
+
+    function renderStats() {
+      if (!data) return;
+      const { membres, actions, labos, recoltes, bijouteries, fleecas, armureries } = data;
+      const nbLabos = labos.filter(([, i]) => matchWeek(i)).reduce((s, [, l]) => s + (l.labos_qty || 0), 0);
+      const nbPochons = labos.filter(([, i]) => matchWeek(i)).reduce((s, [, l]) => s + (l.pochons || 0), 0);
+      const nbRecoltes = recoltes.filter(([, i]) => matchWeek(i)).reduce((s, [, r]) => s + (r.qty || 0), 0);
+      const nbBraq = [bijouteries, fleecas, armureries].reduce((s, l) => s + l.filter(([, i]) => matchWeek(i)).length, 0);
+      const totalActions = actions.filter(([, i]) => matchWeek(i)).reduce((s, [, a]) => s + (a.montant || 0), 0);
+
+      document.getElementById('stat-cards').innerHTML = `
+        <div class="stat"><div class="v">${fmtMoney(totalActions)}</div><div class="l">💵 Actions</div></div>
+        <div class="stat"><div class="v">${nbLabos}</div><div class="l">🧪 Labos (${nbPochons.toLocaleString('fr-FR')} pochons)</div></div>
+        <div class="stat"><div class="v">${nbRecoltes.toLocaleString('fr-FR')}</div><div class="l">🌿 Récoltes</div></div>
+        <div class="stat"><div class="v">${nbBraq}</div><div class="l">💎 Braquages de groupe</div></div>
+      `;
+
+      const topList = (obj, fmt) => Object.entries(obj)
+        .filter(([id]) => membres[id] && !membres[id].invisible)
+        .sort((a, b) => b[1] - a[1]).slice(0, 8)
+        .map(([id, n]) => `<tr><td>${gradeInfo(membres[id].grade).emoji} ${membres[id].prenom}</td><td class="amt">${fmt(n)}</td></tr>`).join('')
+        || `<tr><td colspan="2" class="empty">Rien pour le moment.</td></tr>`;
+      document.getElementById('top-actions').innerHTML = topList(sommePar(actions, a => a.montant || 0), fmtMoney);
+      document.getElementById('top-labos').innerHTML = topList(sommePar(labos, l => l.labos_qty || 0), n => n);
+      document.getElementById('top-recoltes').innerHTML = topList(sommePar(recoltes, r => r.qty || 0), n => n.toLocaleString('fr-FR'));
+    }
+
+    function renderQuotas() {
+      if (!data) return;
+      const { membres, cfg, actions, labos, recoltes, bijouteries, fleecas, armureries } = data;
+      const q = cfg.quotas;
+
+      // Objectifs du groupe (nombre de braquages réussis dans la semaine)
+      const lignes = [['💎 Bijouterie', bijouteries, q.bijouterie], ['🏦 Banque', fleecas, q.banque], ['🔫 Armurerie', armureries, q.armurerie]];
+      document.getElementById('objectifs-groupe').innerHTML = lignes.map(([nom, liste, cible]) => {
+        const fait = liste.filter(([, i]) => matchWeek(i)).length;
+        const pct = cible > 0 ? Math.min(100, Math.round(fait / cible * 100)) : 0;
+        return `<div class="row ${cible > 0 && fait >= cible ? 'ok' : ''}"><div class="nm">${nom}</div><div class="bar"><div class="fill" style="width:${pct}%;"></div></div><div class="ct">${fait}${cible > 0 ? '/' + cible : ''}</div></div>`;
+      }).join('');
+
+      const fait = {
+        cotisation: sommePar(actions, a => a.montant || 0),
+        labo: sommePar(labos, l => l.labos_qty || 0),
+        recolte: sommePar(recoltes, r => r.qty || 0),
+      };
+      const fmt = { cotisation: fmtMoney, labo: n => n, recolte: n => n.toLocaleString('fr-FR') };
+      const cell = (cat, id) => {
+        const cible = q[cat] || 0, f = fait[cat][id] || 0;
+        if (cible <= 0) return `<td><div class="quota-cell"><span class="n">${fmt[cat](f)}</span></div></td>`;
+        const pct = Math.min(100, Math.round(f / cible * 100));
+        return `<td><div class="quota-cell"><span class="n ${f >= cible ? 'ok' : ''}">${fmt[cat](f)}/${fmt[cat](cible)}</span><div class="bar-wrap"><div class="bar-fill" style="width:${pct}%;"></div></div></div></td>`;
+      };
+
+      const actifs = Object.entries(membres).filter(([, m]) => m.actif !== false && !m.invisible);
+      document.getElementById('quota-body').innerHTML = actifs.map(([id, m]) =>
+        `<tr><td>${gradeInfo(m.grade).emoji} ${m.prenom}</td>${cell('cotisation', id)}${cell('labo', id)}${cell('recolte', id)}</tr>`).join('')
+        || `<tr><td colspan="4" class="empty">Aucun membre.</td></tr>`;
+
+      // Petite fête quand la personne connectée atteint un objectif (une fois par catégorie et par semaine)
+      ['cotisation', 'labo', 'recolte'].forEach(cat => {
+        const cible = q[cat] || 0, f = fait[cat][membre.id] || 0;
+        if (cible <= 0 || f < cible) return;
+        const cle = `quota_ok_${semaineFiltre || 'all'}_${cat}_${membre.id}`;
+        if (!sessionStorage.getItem(cle)) { sessionStorage.setItem(cle, '1'); celebrer(); }
+      });
+    }
+
+    Promise.all([
+      db.ref('membres').get(), db.ref('actions').get(), db.ref('labos').get(), db.ref('recoltes').get(),
+      db.ref('bijouteries').get(), db.ref('fleecas').get(), db.ref('armureries').get(), db.ref('config').get()
+    ]).then(([mSnap, aSnap, lSnap, rSnap, biSnap, flSnap, arSnap, cSnap]) => {
+      const ok = ([, i]) => i.resultat !== 'Échec';
+      data = {
+        membres: Object.fromEntries(entries(mSnap.val())),
+        cfg: getConfig(cSnap.val()),
+        actions: entries(aSnap.val()).filter(ok), labos: entries(lSnap.val()).filter(ok), recoltes: entries(rSnap.val()),
+        bijouteries: entries(biSnap.val()).filter(ok), fleecas: entries(flSnap.val()).filter(ok), armureries: entries(arSnap.val()).filter(ok),
+      };
+      chargerSemaines().then(() => { renderStats(); renderQuotas(); });
+    });
+  }
+</script>
+</body>
+</html>

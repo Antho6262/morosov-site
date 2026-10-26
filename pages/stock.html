@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Morosov — Stock</title>
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar" id="sidebar"></aside>
+  <main class="main">
+    <div class="pagehead" style="display:flex;align-items:center;justify-content:space-between;">
+      <h2 id="pagehead-title">Stock</h2>
+      <button class="ghost" id="btn-new-cat" style="display:none;">➕ Nouvelle catégorie</button>
+    </div>
+    <div class="rule"></div>
+
+    <div class="card" id="new-cat-card" style="display:none;">
+      <h3>Nouvelle catégorie</h3>
+      <form class="entry" id="form-cat">
+        <div class="field"><label>Nom</label><input type="text" id="c-nom" placeholder="Ex: Drogue" required></div>
+        <div class="field"><label>Emoji</label><input type="text" id="c-emoji" placeholder="💊" maxlength="4"></div>
+        <button class="submit" type="submit">Créer la catégorie</button>
+        <button class="ghost" type="button" id="btn-cancel-cat">Annuler</button>
+      </form>
+    </div>
+
+    <div class="tabs" id="cat-tabs"></div>
+    <div id="cat-panels"></div>
+  </main>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
+<script src="../js/firebase-config.js"></script>
+<script src="../js/app.js"></script>
+<script>
+  const membre = initShell('stock', 'Stock');
+  if (membre) {
+    if (canManage(membre)) document.getElementById('btn-new-cat').style.display = 'inline-block';
+
+    document.getElementById('btn-new-cat').addEventListener('click', () => {
+      document.getElementById('new-cat-card').style.display = 'block';
+      document.getElementById('btn-new-cat').style.display = 'none';
+    });
+    document.getElementById('btn-cancel-cat').addEventListener('click', () => {
+      document.getElementById('new-cat-card').style.display = 'none';
+      document.getElementById('btn-new-cat').style.display = 'inline-block';
+      document.getElementById('form-cat').reset();
+    });
+
+    let activeCat = null;
+    const ouverts = new Set(); // sous-blocs purétés ouverts (conservés entre les rafraîchissements)
+
+    // ---- Purification (produits "purifiables") ----
+    const PURETES = ['brut', '50', '70', '90', '99'];
+    const labelPurete = p => p === 'brut' ? 'Non purifié' : p + '%';
+    const puretesVides = () => ({ brut: 0, '50': 0, '70': 0, '90': 0, '99': 0 });
+    const totalPurete = pu => PURETES.reduce((s, k) => s + (Number((pu || {})[k]) || 0), 0);
+    async function setPurete(catId, pid, niveau, valeur) {
+      const ref = db.ref(`stock/${catId}/produits/${pid}`);
+      const p = (await ref.get()).val() || {};
+      const pu = Object.assign(puretesVides(), p.purete || {});
+      pu[niveau] = Math.max(0, valeur);
+      await ref.update({ purete: pu, stock: totalPurete(pu) });
+    }
+
+    db.ref('stock').on('value', snap => {
+      const cats = entries(snap.val());
+      const tabsEl = document.getElementById('cat-tabs');
+      const panelsEl = document.getElementById('cat-panels');
+
+      if (cats.length === 0) {
+        tabsEl.innerHTML = '';
+        panelsEl.innerHTML = `<div class="card"><div class="empty">Aucune catégorie de stock. ${canManage(membre) ? 'Crée-en une ci-dessous.' : ''}</div></div>`;
+        return;
+      }
+      if (!activeCat || !cats.find(([id]) => id === activeCat)) activeCat = cats[0][0];
+
+      tabsEl.innerHTML = cats.map(([id, c]) =>
+        `<button data-cat="${id}" class="${id === activeCat ? 'active' : ''}">${c.emoji || '📦'} ${c.nom}</button>`
+      ).join('');
+
+      tabsEl.querySelectorAll('button').forEach(b => {
+        b.addEventListener('click', () => { activeCat = b.dataset.cat; renderPanels(cats); });
+      });
+
+      renderPanels(cats);
+    });
+
+    function renderPanels(cats) {
+      const panelsEl = document.getElementById('cat-panels');
+      document.querySelectorAll('#cat-tabs button').forEach(b => b.classList.toggle('active', b.dataset.cat === activeCat));
+
+      const [catId, cat] = cats.find(([id]) => id === activeCat);
+      const produits = entries(cat.produits);
+
+      panelsEl.innerHTML = `
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+            <h3 style="margin-bottom:0;border-bottom:none;padding-bottom:0;">${cat.emoji || '📦'} ${cat.nom}</h3>
+            ${canManage(membre) ? `
+              <div style="display:flex;gap:8px;">
+                <button class="ghost" id="btn-new-prod">➕ Ajouter un produit</button>
+                <button class="ghost del-cat" data-cat="${catId}">Supprimer la catégorie</button>
+              </div>` : ''}
+          </div>
+          <div style="border-bottom:1px dashed var(--line);margin:10px 0 14px;"></div>
+
+          ${canManage(membre) ? `
+          <form class="entry" id="form-prod" style="display:none;margin-bottom:16px;">
+            <div class="field"><label>Nom</label><input type="text" id="p-nom" required></div>
+            <div class="field"><label>Prix</label><input type="number" id="p-prix" min="0" step="1" required></div>
+            <div class="field"><label>Purifiable ?</label><select id="p-purifiable"><option value="0">Non</option><option value="1">Oui</option></select></div>
+            <button class="submit" type="submit">Ajouter</button>
+            <button class="ghost" type="button" id="btn-cancel-prod">Annuler</button>
+          </form>` : ''}
+
+          <div class="prod-grid">
+            ${produits.length === 0 ? `<div class="empty">Aucun produit dans cette catégorie.</div>` :
+              produits.map(([pid, p]) => {
+                return `
+                <div class="prod-card">
+                  <div class="prod-head">
+                    <div class="prod-nom">${p.nom}</div>
+                    ${canManage(membre) ? `<button class="del" data-cat="${catId}" data-prod="${pid}" title="Supprimer">✕</button>` : ''}
+                  </div>
+                  <div class="prod-row"><span>Prix</span>${canManage(membre)
+                    ? `<input type="number" class="edit-prix" data-cat="${catId}" data-prod="${pid}" min="0" step="1" value="${p.prix || 0}">`
+                    : `<b>${fmtMoney(p.prix)}</b>`}</div>
+                  <div class="prod-row"><span>Stock</span>${p.purifiable ? `<b>${totalPurete(p.purete)}</b>` : canManage(membre)
+                    ? `<input type="number" class="edit-stock" data-cat="${catId}" data-prod="${pid}" min="0" step="1" value="${p.stock || 0}">`
+                    : `<b>${p.stock || 0}</b>`}</div>
+                  ${p.purifiable ? `
+                  <details data-pid="${pid}" ${ouverts.has(pid) ? 'open' : ''} class="prod-pur">
+                    <summary>🧪 Puretés — ${PURETES.filter(k => (p.purete || {})[k] > 0).map(k => labelPurete(k) + ' : ' + p.purete[k]).join(' · ') || 'vide'}</summary>
+                    <div class="pur-grid">
+                      ${PURETES.map(k => `<label>${labelPurete(k)}
+                        ${canManage(membre)
+                          ? `<input type="number" class="edit-pur" data-cat="${catId}" data-prod="${pid}" data-niv="${k}" min="0" step="1" value="${(p.purete || {})[k] || 0}">`
+                          : `<strong>${(p.purete || {})[k] || 0}</strong>`}</label>`).join('')}
+                    </div>
+                  </details>` : `
+                  <div class="prod-adj">
+                    <button class="ghost adj" data-cat="${catId}" data-prod="${pid}" data-delta="-1">−</button>
+                    <button class="ghost adj" data-cat="${catId}" data-prod="${pid}" data-delta="1">+</button>
+                  </div>`}
+                  ${canManage(membre) ? `<button class="ghost tog-pur" data-cat="${catId}" data-prod="${pid}" title="Activer/désactiver la purification" style="margin-top:8px;width:100%;">🧪 Purification ${p.purifiable ? 'ON' : 'OFF'}</button>` : ''}
+                </div>`;
+              }).join('')}
+          </div>
+        </div>
+      `;
+
+      const purifiables = produits.filter(([, p]) => p.purifiable);
+      if (purifiables.length) {
+        panelsEl.insertAdjacentHTML('beforeend', `
+          <details class="card" id="det-purif" ${ouverts.has('__purif') ? 'open' : ''}>
+            <summary style="cursor:pointer;font-weight:600;">🧪 Purification</summary>
+            <form class="entry" id="form-purif" style="margin-top:12px;">
+              <div class="field"><label>Produit</label><select id="pf-prod">${purifiables.map(([pid, p]) => `<option value="${pid}">${p.nom}</option>`).join('')}</select></div>
+              <div class="field"><label>De</label><select id="pf-de">${PURETES.slice(0, -1).map(k => `<option value="${k}">${labelPurete(k)}</option>`).join('')}</select></div>
+              <div class="field"><label>Vers</label><select id="pf-vers">${PURETES.slice(1).map(k => `<option value="${k}">${labelPurete(k)}</option>`).join('')}</select></div>
+              <div class="field"><label>Quantité</label><input type="number" id="pf-qty" min="1" step="1" value="1" required></div>
+              <button class="submit" type="submit">Purifier</button>
+            </form>
+            <div class="note-hint">Déplace la quantité d'un niveau de pureté vers un niveau supérieur. Le stock total ne change pas.</div>
+          </details>`);
+        document.getElementById('det-purif').addEventListener('toggle', e => { e.target.open ? ouverts.add('__purif') : ouverts.delete('__purif'); });
+        document.getElementById('form-purif').addEventListener('submit', async e => {
+          e.preventDefault();
+          const pid = document.getElementById('pf-prod').value;
+          const de = document.getElementById('pf-de').value, vers = document.getElementById('pf-vers').value;
+          const qty = parseInt(document.getElementById('pf-qty').value, 10);
+          if (isNaN(qty) || qty < 1) return;
+          if (PURETES.indexOf(vers) <= PURETES.indexOf(de)) { toast('Choisis une pureté supérieure.'); return; }
+          const ref = db.ref(`stock/${catId}/produits/${pid}`);
+          const p = (await ref.get()).val() || {};
+          const pu = Object.assign(puretesVides(), p.purete || {});
+          if ((pu[de] || 0) < qty) { toast(`Pas assez de stock en ${labelPurete(de)}.`); return; }
+          pu[de] -= qty; pu[vers] += qty;
+          await ref.update({ purete: pu, stock: totalPurete(pu) });
+          toast('Purification effectuée.');
+        });
+      }
+      panelsEl.querySelectorAll('details[data-pid]').forEach(d => {
+        d.addEventListener('toggle', () => { d.open ? ouverts.add(d.dataset.pid) : ouverts.delete(d.dataset.pid); });
+      });
+      panelsEl.querySelectorAll('.edit-pur').forEach(inp => {
+        inp.addEventListener('change', () => {
+          const v = parseInt(inp.value, 10);
+          setPurete(inp.dataset.cat, inp.dataset.prod, inp.dataset.niv, isNaN(v) ? 0 : v);
+        });
+      });
+      panelsEl.querySelectorAll('.tog-pur').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const ref = db.ref(`stock/${btn.dataset.cat}/produits/${btn.dataset.prod}`);
+          const p = (await ref.get()).val() || {};
+          if (p.purifiable) await ref.update({ purifiable: null, purete: null });
+          else await ref.update({ purifiable: true, purete: Object.assign(puretesVides(), { brut: p.stock || 0 }) });
+        });
+      });
+      panelsEl.querySelectorAll('.adj').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const ref = db.ref(`stock/${btn.dataset.cat}/produits/${btn.dataset.prod}/stock`);
+          ref.get().then(s => ref.set(Math.max(0, (s.val() || 0) + parseInt(btn.dataset.delta, 10))));
+        });
+      });
+      panelsEl.querySelectorAll('.edit-prix').forEach(inp => {
+        inp.addEventListener('change', () => {
+          const v = parseFloat(inp.value);
+          if (isNaN(v) || v < 0) { inp.value = 0; return; }
+          db.ref(`stock/${inp.dataset.cat}/produits/${inp.dataset.prod}/prix`).set(v);
+        });
+      });
+      panelsEl.querySelectorAll('.edit-stock').forEach(inp => {
+        inp.addEventListener('change', () => {
+          const v = parseInt(inp.value, 10);
+          if (isNaN(v) || v < 0) { inp.value = 0; return; }
+          db.ref(`stock/${inp.dataset.cat}/produits/${inp.dataset.prod}/stock`).set(v);
+        });
+      });
+      panelsEl.querySelectorAll('.del').forEach(btn => {
+        if (!btn.dataset.prod) return;
+        btn.addEventListener('click', () => db.ref(`stock/${btn.dataset.cat}/produits/${btn.dataset.prod}`).remove());
+      });
+      const delCatBtn = panelsEl.querySelector('.del-cat');
+      if (delCatBtn) delCatBtn.addEventListener('click', () => {
+        db.ref('stock/' + delCatBtn.dataset.cat).remove();
+        activeCat = null;
+      });
+
+      const btnNewProd = document.getElementById('btn-new-prod');
+      const formProd = document.getElementById('form-prod');
+      const btnCancelProd = document.getElementById('btn-cancel-prod');
+      if (btnNewProd) btnNewProd.addEventListener('click', () => {
+        formProd.style.display = 'flex';
+        btnNewProd.style.display = 'none';
+      });
+      if (btnCancelProd) btnCancelProd.addEventListener('click', () => {
+        formProd.style.display = 'none';
+        btnNewProd.style.display = 'inline-block';
+        formProd.reset();
+      });
+      if (formProd) formProd.addEventListener('submit', e => {
+        e.preventDefault();
+        const nom = document.getElementById('p-nom').value.trim();
+        const prix = parseFloat(document.getElementById('p-prix').value);
+        if (!nom || isNaN(prix)) return;
+        const purifiable = document.getElementById('p-purifiable').value === '1';
+        db.ref(`stock/${catId}/produits/${uid()}`).set(purifiable ? { nom, prix, stock: 0, purifiable: true, purete: puretesVides() } : { nom, prix, stock: 0 });
+        formProd.reset();
+        formProd.style.display = 'none';
+        btnNewProd.style.display = 'inline-block';
+      });
+    }
+
+    document.getElementById('form-cat').addEventListener('submit', e => {
+      e.preventDefault();
+      const nom = document.getElementById('c-nom').value.trim();
+      const emoji = document.getElementById('c-emoji').value.trim() || '📦';
+      if (!nom) return;
+      const nouvelId = uid();
+      db.ref('stock/' + nouvelId).set({ nom, emoji, produits: {} }).then(() => {
+        activeCat = nouvelId;
+      });
+      document.getElementById('form-cat').reset();
+      document.getElementById('new-cat-card').style.display = 'none';
+      document.getElementById('btn-new-cat').style.display = 'inline-block';
+    });
+  }
+</script>
+</body>
+</html>

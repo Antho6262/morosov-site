@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Morosov — Connexion</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body class="login-body">
+<div class="login-wrap">
+  <div class="login-card">
+    <img src="img/logo.svg" alt="Morosov" class="login-logo">
+    <h1>МОРОЗОВ</h1>
+    <div class="login-sub">ОРГАНИЗАЦИЯ</div>
+    <form id="form-login">
+      <div class="field">
+        <label>Pseudo</label>
+        <select id="l-pseudo" required></select>
+        <input type="text" id="l-pseudo-texte" placeholder="Ton pseudo" style="display:none;" autocomplete="username">
+      </div>
+      <div class="field">
+        <label>Mot de passe</label>
+        <input type="password" id="l-pass" placeholder="••••••••" required autocomplete="current-password">
+      </div>
+      <button class="submit" type="submit" style="margin-top:6px;">Entrer</button>
+    </form>
+    <div class="login-error" id="l-error"></div>
+    <div class="login-links">Première utilisation ? <a href="setup.html">Initialiser le site</a></div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
+<script src="js/firebase-config.js"></script>
+<script>
+  startSnow();
+  // déjà connecté -> direct au dashboard
+  if (getSession()) window.location.href = 'pages/dashboard.html';
+
+  // Connexion secrète : ajouter ?d à l'URL affiche un champ pseudo libre
+  // (au lieu du menu déroulant), pour se connecter sans apparaître dans la liste.
+  const modeDirect = new URLSearchParams(location.search).has('d');
+  if (modeDirect) {
+    document.getElementById('l-pseudo').style.display = 'none';
+    document.getElementById('l-pseudo').required = false;
+    document.getElementById('l-pseudo-texte').style.display = 'block';
+    document.getElementById('l-pseudo-texte').required = true;
+  }
+
+  // remplit la liste déroulante des pseudos (les membres invisibles n'y apparaissent jamais)
+  db.ref('membres').get().then(snap => {
+    const membres = entries(snap.val())
+      .filter(([id, m]) => m.actif !== false && !m.invisible)
+      .sort((a, b) => a[1].prenom.localeCompare(b[1].prenom));
+    const sel = document.getElementById('l-pseudo');
+    sel.innerHTML = membres.length === 0
+      ? '<option value="">Aucun membre — initialise le site</option>'
+      : '<option value="" disabled selected>— Choisis ton pseudo —</option>' +
+        membres.map(([id, m]) => `<option value="${id}">${gradeInfo(m.grade).emoji} ${m.prenom}</option>`).join('');
+  }).catch(err => console.error(err));
+
+  document.getElementById('form-login').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const pass = document.getElementById('l-pass').value;
+    const errEl = document.getElementById('l-error');
+    errEl.textContent = '';
+
+    try {
+      let membreId, m;
+
+      if (modeDirect) {
+        const pseudoSaisi = document.getElementById('l-pseudo-texte').value.trim();
+        if (!pseudoSaisi) { errEl.textContent = 'Entre ton pseudo.'; return; }
+        const snap = await db.ref('membres').get();
+        const found = entries(snap.val()).find(([id, mm]) =>
+          mm.prenom && mm.prenom.toLowerCase() === pseudoSaisi.toLowerCase()
+        );
+        if (!found) { errEl.textContent = 'Pseudo introuvable.'; return; }
+        [membreId, m] = found;
+      } else {
+        membreId = document.getElementById('l-pseudo').value;
+        if (!membreId) { errEl.textContent = 'Choisis ton pseudo.'; return; }
+        const snap = await db.ref('membres/' + membreId).get();
+        m = snap.val();
+      }
+
+      if (!m || m.mot_de_passe !== pass) {
+        errEl.textContent = 'Mot de passe incorrect.';
+        return;
+      }
+      if (m.actif === false) {
+        errEl.textContent = 'Ce compte est désactivé.';
+        return;
+      }
+      setSession({ id: membreId, prenom: m.prenom, grade: m.grade, role: m.role || 'membre' });
+      window.location.href = 'pages/dashboard.html';
+    } catch (err) {
+      errEl.textContent = "Impossible de contacter le site — vérifie ta config Firebase.";
+      console.error(err);
+    }
+  });
+</script>
+</body>
+</html>
