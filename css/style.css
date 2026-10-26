@@ -512,3 +512,27 @@ html::after{opacity:.22;} /* lignes de scan quasi effacées : l'image reste nett
 body.login-body{background:#04070d url('../img/banner.jpg') center / cover no-repeat fixed;}
 body.login-body::before{background:linear-gradient(180deg, rgba(4,7,13,.55), rgba(4,7,13,.9));}
 body.login-body::after{display:none;}
+
+/* ============================================================
+   FOND MOROSOV — plus clair, plus net : nuit bleue, grille hexagonale, halos drapeau
+   ============================================================ */
+body{background:#050912;}
+body::before{
+  background:
+    radial-gradient(1000px 640px at 6% -8%, rgba(40,110,255,.34), transparent 62%),
+    radial-gradient(900px 600px at 104% 2%, rgba(150,200,255,.18), transparent 60%),
+    radial-gradient(1000px 700px at 104% 108%, rgba(224,38,45,.22), transparent 62%),
+    radial-gradient(800px 560px at -4% 104%, rgba(31,95,255,.22), transparent 62%),
+    linear-gradient(180deg, #08142a 0%, #050912 100%);
+}
+body::after{
+  inset:0;height:auto;bottom:auto;filter:none;opacity:1;
+  background:
+    linear-gradient(115deg, transparent 38%, rgba(170,210,255,.07) 50%, transparent 62%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='100' viewBox='0 0 56 100'%3E%3Cpath d='M28 66L0 50L0 16L28 0L56 16L56 50L28 66L28 100' fill='none' stroke='%234da3ff' stroke-opacity='.10'/%3E%3Cpath d='M28 0L28 34L0 50L0 84L28 100L56 84L56 50L28 34' fill='none' stroke='%234da3ff' stroke-opacity='.10'/%3E%3C/svg%3E") center top / 56px 100px repeat;
+  -webkit-mask-image:radial-gradient(ellipse at 50% 35%, #000 25%, transparent 85%);
+          mask-image:radial-gradient(ellipse at 50% 35%, #000 25%, transparent 85%);
+}
+html::after{display:none;}
+.card{background:linear-gradient(180deg, rgba(14,28,48,.94), rgba(8,16,30,.96));backdrop-filter:none;}
+.sidebar{background:linear-gradient(180deg, rgba(10,22,40,.97), rgba(5,10,20,.98));}

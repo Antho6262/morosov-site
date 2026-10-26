@@ -19,7 +19,6 @@
     <div style="text-align:right;margin-bottom:-6px;"><a class="ghost" href="tv.html" style="display:inline-block;">📺 Mode TV</a></div>
     <div class="note-hint" style="margin-bottom:16px;">🗓️ Payes le dimanche à 19h par un haut gradé (Lead → Sergent) — argent sale uniquement. 🏆 Récompenses pour les 3 meilleurs de la semaine.</div>
 
-    <div class="card" id="capitaine-card" style="display:none;text-align:center;"></div>
 
     <div class="card" style="text-align:center;">
       <h3 style="margin-bottom:14px;">⏳ Prochaine paye</h3>
@@ -220,18 +219,6 @@
       dernieresListes = { membres, cfg, actions, gofasts, ventes, labos, fleecas, armureries };
       chargerSemaines().then(renderTout);
 
-      // Membre du jour (surprise cosmétique)
-      const membresActifs = Object.entries(membres).filter(([id, m]) => m.actif !== false && !m.invisible);
-      const capitaine = capitaineDuJour(membresActifs);
-      if (capitaine) {
-        const [, m] = capitaine;
-        const g = gradeInfo(m.grade);
-        document.getElementById('capitaine-card').style.display = 'block';
-        document.getElementById('capitaine-card').innerHTML =
-          `<div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:2px;color:var(--muted);">MEMBRE DU JOUR</div>
-           <div style="font-family:'Russo One',sans-serif;font-size:28px;color:var(--gold);margin-top:4px;">${m.prenom} ${g.emoji}</div>`;
-      }
-
       // Carte au trésor — total historique (toutes semaines, hors échecs)
       const totalHistorique =
         actions.reduce((s, [,a]) => s + (a.montant || 0), 0) +
@@ -321,34 +308,37 @@
     setInterval(renderCooldown, 30000);
 
     // ---- Compte à rebours vers la prochaine paye (fin de la semaine active = dimanche 19h) ----
-    async function demarrerCountdown() {
-      const activeId = (await db.ref('config/semaine_active_id').get()).val();
-      if (!activeId) return;
-      const semaine = (await db.ref('semaines/' + activeId).get()).val();
-      if (!semaine || !semaine.fin) return;
-      const cible = new Date(semaine.fin).getTime();
-
-      function tick() {
-        const now = Date.now();
-        const diff = cible - now;
-        const el = document.getElementById('countdown-paye');
-        if (diff <= 0) {
-          el.innerHTML = `<div class="cd-bloc"><div class="n">❄️</div><div class="l">Nouvelle semaine imminente</div></div>`;
-          return;
-        }
-        const j = Math.floor(diff / 86400000);
-        const h = Math.floor((diff % 86400000) / 3600000);
-        const m = Math.floor((diff % 3600000) / 60000);
-        const s = Math.floor((diff % 60000) / 1000);
-        el.innerHTML = `
-          <div class="cd-bloc"><div class="n">${j}</div><div class="l">Jours</div></div>
-          <div class="cd-bloc"><div class="n">${String(h).padStart(2,'0')}</div><div class="l">Heures</div></div>
-          <div class="cd-bloc"><div class="n">${String(m).padStart(2,'0')}</div><div class="l">Minutes</div></div>
-          <div class="cd-bloc"><div class="n">${String(s).padStart(2,'0')}</div><div class="l">Secondes</div></div>
-        `;
+    let cibleCountdown = null, timerCountdown = null;
+    function tickCountdown() {
+      const el = document.getElementById('countdown-paye');
+      if (!cibleCountdown) return;
+      const diff = cibleCountdown - Date.now();
+      if (diff <= 0) {
+        el.innerHTML = `<div class="cd-bloc"><div class="n">❄️</div><div class="l">Nouvelle semaine imminente</div></div>`;
+        return;
       }
-      tick();
-      setInterval(tick, 1000);
+      const j = Math.floor(diff / 86400000);
+      const h = Math.floor((diff % 86400000) / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      el.innerHTML = `
+        <div class="cd-bloc"><div class="n">${j}</div><div class="l">Jours</div></div>
+        <div class="cd-bloc"><div class="n">${String(h).padStart(2,'0')}</div><div class="l">Heures</div></div>
+        <div class="cd-bloc"><div class="n">${String(m).padStart(2,'0')}</div><div class="l">Minutes</div></div>
+        <div class="cd-bloc"><div class="n">${String(s).padStart(2,'0')}</div><div class="l">Secondes</div></div>
+      `;
+    }
+    function demarrerCountdown() {
+      // écoute la semaine active : au tout premier chargement elle est créée après l'ouverture de la page
+      db.ref('config/semaine_active_id').on('value', async snap => {
+        const activeId = snap.val();
+        if (!activeId) return;
+        const semaine = (await db.ref('semaines/' + activeId).get()).val();
+        if (!semaine || !semaine.fin) return;
+        cibleCountdown = new Date(semaine.fin).getTime();
+        tickCountdown();
+        if (!timerCountdown) timerCountdown = setInterval(tickCountdown, 1000);
+      });
     }
     demarrerCountdown();
   }

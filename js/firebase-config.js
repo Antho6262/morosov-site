@@ -48,10 +48,10 @@ function startSnow() {
     let W = 0, H = 0;
     const resize = () => { W = cv.width = window.innerWidth; H = cv.height = window.innerHeight; };
     resize(); window.addEventListener('resize', resize);
-    const N = Math.min(110, Math.round(window.innerWidth / 14));
+    const N = Math.min(55, Math.round(window.innerWidth / 30));
     const flakes = Array.from({ length: N }, () => ({
       x: Math.random() * window.innerWidth, y: Math.random() * window.innerHeight,
-      r: 0.8 + Math.random() * 2.2, v: 0.35 + Math.random() * 1.1, d: Math.random() * Math.PI * 2, o: 0.35 + Math.random() * 0.55
+      r: 0.8 + Math.random() * 2.2, v: 0.35 + Math.random() * 1.1, d: Math.random() * Math.PI * 2, o: 0.25 + Math.random() * 0.4
     }));
     (function tick() {
       ctx.clearRect(0, 0, W, H);
