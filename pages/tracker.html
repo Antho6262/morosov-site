@@ -37,6 +37,9 @@
       <button data-tab="labo">🧪 Labo</button>
       <button data-tab="fleeca">🏦 Fleeca</button>
       <button data-tab="armurerie">🔫 Armurerie</button>
+      <button data-tab="bijouterie">💎 Bijouterie</button>
+      <button data-tab="pacific">🏛️ Pacific Bank</button>
+      <button data-tab="humanlabs">🧬 Human Labs</button>
     </div>
 
     <!-- ACTIONS -->
@@ -208,6 +211,90 @@
         <div class="grand" id="ar-grand"></div>
       </div>
     </div>
+    <!-- BIJOUTERIE -->
+    <div class="tabpanel" id="panel-bijouterie">
+      <div class="card">
+        <h3>Nouveau braquage Bijouterie</h3>
+        <form class="entry" id="form-bijouterie" style="flex-direction:column;align-items:stretch;">
+          <div class="field">
+            <label>Membres participants</label>
+            <div class="member-checklist" id="bi-members"></div>
+          </div>
+          <div class="entry" style="margin-top:12px;">
+            <div class="field"><label>Montant total gagné ($)</label><input type="number" id="bi-montant" min="0" step="1" required></div>
+            <div class="field"><label>Résultat</label>
+              <select id="bi-resultat"><option value="Réussite">✅ Réussite</option><option value="Échec">❌ Échec</option></select>
+            </div>
+            <div class="field" id="bi-raison-wrap" style="display:none;"><label>Raison de l'échec</label><input type="text" id="bi-raison" placeholder="optionnel"></div>
+            <div class="field"><label>Note</label><input type="text" id="bi-note" placeholder="optionnel"></div>
+            <div class="field"><label>Date et heure (si passé)</label><input type="datetime-local" id="bi-date"></div>
+            <button class="submit" type="submit">Ajouter</button>
+          </div>
+        </form>
+        <div class="note-hint">L'argent va entièrement au groupe — aucune part individuelle. Compte pour 1 action dans le quota de chaque membre coché.</div>
+      </div>
+      <div class="card">
+        <h3>Historique</h3>
+        <table><thead><tr><th>Membres</th><th>Montant</th><th>Résultat</th><th>Note</th><th>Date</th><th></th></tr></thead><tbody id="bi-table"></tbody></table>
+        <div class="grand" id="bi-grand"></div>
+      </div>
+    </div>
+    <!-- ARMURERIE -->
+    <div class="tabpanel" id="panel-pacific">
+      <div class="card">
+        <h3>Nouveau braquage Pacific Bank</h3>
+        <form class="entry" id="form-pacific" style="flex-direction:column;align-items:stretch;">
+          <div class="field">
+            <label>Membres participants</label>
+            <div class="member-checklist" id="pa-members"></div>
+          </div>
+          <div class="entry" style="margin-top:12px;">
+            <div class="field"><label>Montant total gagné ($)</label><input type="number" id="pa-montant" min="0" step="1" required></div>
+            <div class="field"><label>Résultat</label>
+              <select id="pa-resultat"><option value="Réussite">✅ Réussite</option><option value="Échec">❌ Échec</option></select>
+            </div>
+            <div class="field" id="pa-raison-wrap" style="display:none;"><label>Raison de l'échec</label><input type="text" id="pa-raison" placeholder="optionnel"></div>
+            <div class="field"><label>Note</label><input type="text" id="pa-note" placeholder="optionnel"></div>
+            <div class="field"><label>Date et heure (si passé)</label><input type="datetime-local" id="pa-date"></div>
+            <button class="submit" type="submit">Ajouter</button>
+          </div>
+        </form>
+        <div class="note-hint">L'argent va entièrement au groupe — aucune part individuelle. Compte pour 1 action dans le quota de chaque membre coché.</div>
+      </div>
+      <div class="card">
+        <h3>Historique</h3>
+        <table><thead><tr><th>Membres</th><th>Montant</th><th>Résultat</th><th>Note</th><th>Date</th><th></th></tr></thead><tbody id="pa-table"></tbody></table>
+        <div class="grand" id="pa-grand"></div>
+      </div>
+    </div>
+    <!-- ARMURERIE -->
+    <div class="tabpanel" id="panel-humanlabs">
+      <div class="card">
+        <h3>Nouveau braquage Human Labs</h3>
+        <form class="entry" id="form-humanlabs" style="flex-direction:column;align-items:stretch;">
+          <div class="field">
+            <label>Membres participants</label>
+            <div class="member-checklist" id="hl-members"></div>
+          </div>
+          <div class="entry" style="margin-top:12px;">
+            <div class="field"><label>Montant total gagné ($)</label><input type="number" id="hl-montant" min="0" step="1" required></div>
+            <div class="field"><label>Résultat</label>
+              <select id="hl-resultat"><option value="Réussite">✅ Réussite</option><option value="Échec">❌ Échec</option></select>
+            </div>
+            <div class="field" id="hl-raison-wrap" style="display:none;"><label>Raison de l'échec</label><input type="text" id="hl-raison" placeholder="optionnel"></div>
+            <div class="field"><label>Note</label><input type="text" id="hl-note" placeholder="optionnel"></div>
+            <div class="field"><label>Date et heure (si passé)</label><input type="datetime-local" id="hl-date"></div>
+            <button class="submit" type="submit">Ajouter</button>
+          </div>
+        </form>
+        <div class="note-hint">L'argent va entièrement au groupe — aucune part individuelle. Compte pour 1 action dans le quota de chaque membre coché.</div>
+      </div>
+      <div class="card">
+        <h3>Historique</h3>
+        <table><thead><tr><th>Membres</th><th>Montant</th><th>Résultat</th><th>Note</th><th>Date</th><th></th></tr></thead><tbody id="hl-table"></tbody></table>
+        <div class="grand" id="hl-grand"></div>
+      </div>
+    </div>
   </main>
 </div>
 
@@ -265,7 +352,7 @@
       });
     });
 
-    ['a', 'g', 'v', 'l', 'fl', 'ar'].forEach(prefix => {
+    ['a', 'g', 'v', 'l', 'fl', 'ar', 'bi', 'pa', 'hl'].forEach(prefix => {
       document.getElementById(prefix + '-resultat').addEventListener('change', e => {
         document.getElementById(prefix + '-raison-wrap').style.display = e.target.value === 'Échec' ? 'block' : 'none';
       });
@@ -288,7 +375,7 @@
       });
 
       const membresActifs = Object.entries(membres).filter(visible);
-      ['fl-members', 'ar-members'].forEach(cid => {
+      ['fl-members', 'ar-members', 'bi-members', 'pa-members', 'hl-members'].forEach(cid => {
         const el = document.getElementById(cid);
         const cochesAvant = new Set([...el.querySelectorAll('input:checked')].map(i => i.value));
         el.innerHTML = membresActifs.length === 0
@@ -359,7 +446,8 @@
     // Types d'action configurables dans Admin → Types d'action
     const TYPES_ACTION_DEFAUT = [
       { emoji: '🏧', nom: 'ATM' }, { emoji: '🏠', nom: 'Cambu' }, { emoji: '📦', nom: 'Conteneur' },
-      { emoji: '🏪', nom: 'Supérette' }, { emoji: '⛽', nom: 'LTD' }, { emoji: '🚗', nom: 'Go Fast' }
+      { emoji: '🏪', nom: 'Supérette' }, { emoji: '⛽', nom: 'LTD' }, { emoji: '🚗', nom: 'Go Fast' },
+      { emoji: '🚚', nom: 'Convoi de fonds' }, { emoji: '📥', nom: 'Convoi de saisie' }, { emoji: '🧪', nom: 'Scène labo' }
     ];
     db.ref('config/types_action').on('value', snap => {
       const v = snap.val();
@@ -701,7 +789,7 @@
       braquageRenders[prefix] = render;
       db.ref(nodeName).on('value', snap => { lastSnap = snap; render(); });
 
-      document.getElementById('form-' + (prefix === 'fl' ? 'fleeca' : 'armurerie')).addEventListener('submit', e => {
+      document.getElementById('form-' + ({ fl: 'fleeca', ar: 'armurerie', bi: 'bijouterie', pa: 'pacific', hl: 'humanlabs' })[prefix]).addEventListener('submit', e => {
         e.preventDefault();
         const membres_ids = [...document.querySelectorAll(`#${prefix}-members input:checked`)].map(i => i.value);
         const montant = parseFloat(document.getElementById(prefix + '-montant').value);
@@ -725,6 +813,9 @@
     }
     setupBraquage('fl', 'fleecas', 'Fleeca');
     setupBraquage('ar', 'armureries', 'Armurerie');
+    setupBraquage('bi', 'bijouteries', 'Bijouterie');
+    setupBraquage('pa', 'pacifics', 'Pacific Bank');
+    setupBraquage('hl', 'humanlabs', 'Human Labs');
 
     // ---- delete (délégué) ----
     document.body.addEventListener('click', e => {

@@ -26,7 +26,7 @@
         <thead><tr><th>Braquage</th><th>Statut</th><th>Se libère le</th></tr></thead>
         <tbody id="cooldown-body"></tbody>
       </table>
-      <div class="note-hint">2 braquages par semaine : chacun se libère exactement 7 jours après sa date (réussite ou échec), ce qui garde le même intervalle entre les deux.</div>
+      <div class="note-hint">Limites de l'Organisation par semaine : banque 12, bijouterie 4, armurerie 12, Pacific Bank 2, Human Labs 1. Chaque braquage se libère exactement 7 jours après sa date (réussite ou échec).</div>
     </div>
 
     <div class="card">
@@ -93,7 +93,7 @@
 
     function renderTout() {
       if (!dernieresListes) return;
-      const { membres, cfg, actions, gofasts, ventes, labos, fleecas, armureries } = dernieresListes;
+      const { membres, cfg, actions, gofasts, ventes, labos, fleecas, armureries, bijouteries, pacifics, humanlabs } = dernieresListes;
       const matchWeek = item => !semaineFiltre || item.semaine_id === semaineFiltre;
 
       const actionsF = actions.filter(([,a]) => matchWeek(a));
@@ -102,8 +102,11 @@
       const labosF = labos.filter(([,l]) => matchWeek(l));
       const fleecasF = fleecas.filter(([,r]) => matchWeek(r));
       const armureriesF = armureries.filter(([,r]) => matchWeek(r));
+      const bijouteriesF = bijouteries.filter(([,r]) => matchWeek(r));
+      const pacificsF = pacifics.filter(([,r]) => matchWeek(r));
+      const humanlabsF = humanlabs.filter(([,r]) => matchWeek(r));
 
-      let totalActions = 0, totalGofast = 0, totalVente = 0, totalLabo = 0, totalFleeca = 0, totalArmurerie = 0;
+      let totalActions = 0, totalGofast = 0, totalVente = 0, totalLabo = 0, totalFleeca = 0, totalArmurerie = 0, totalBijouterie = 0, totalPacific = 0, totalHumanLabs = 0;
       const partParMembre = {};
 
       actionsF.forEach(([id, a]) => {
@@ -125,6 +128,9 @@
       });
       fleecasF.forEach(([id, r]) => { totalFleeca += (r.montant || 0); }); // pas de part individuelle
       armureriesF.forEach(([id, r]) => { totalArmurerie += (r.montant || 0); });
+      bijouteriesF.forEach(([id, r]) => { totalBijouterie += (r.montant || 0); });
+      pacificsF.forEach(([id, r]) => { totalPacific += (r.montant || 0); });
+      humanlabsF.forEach(([id, r]) => { totalHumanLabs += (r.montant || 0); });
 
       document.getElementById('cat-cards').innerHTML = `
         <div class="stat"><div class="v">${fmtMoney(totalActions)}</div><div class="l">💵 Actions</div></div>
@@ -133,6 +139,9 @@
         <div class="stat"><div class="v">${fmtMoney(totalLabo)}</div><div class="l">🧪 Labo</div></div>
         <div class="stat"><div class="v">${fmtMoney(totalFleeca)}</div><div class="l">🏦 Fleeca</div></div>
         <div class="stat"><div class="v">${fmtMoney(totalArmurerie)}</div><div class="l">🔫 Armurerie</div></div>
+        <div class="stat"><div class="v">${fmtMoney(totalBijouterie)}</div><div class="l">💎 Bijouterie</div></div>
+        <div class="stat"><div class="v">${fmtMoney(totalPacific)}</div><div class="l">🏛️ Pacific Bank</div></div>
+        <div class="stat"><div class="v">${fmtMoney(totalHumanLabs)}</div><div class="l">🧬 Human Labs</div></div>
       `;
 
       // Compteur d'objectifs restants par membre (quotas Admin)
@@ -195,8 +204,11 @@
       db.ref('labos').get(),
       db.ref('fleecas').get(),
       db.ref('armureries').get(),
+      db.ref('bijouteries').get(),
+      db.ref('pacifics').get(),
+      db.ref('humanlabs').get(),
       db.ref('config').get()
-    ]).then(([mSnap, aSnap, gSnap, vSnap, lSnap, flSnap, arSnap, cSnap]) => {
+    ]).then(([mSnap, aSnap, gSnap, vSnap, lSnap, flSnap, arSnap, biSnap, paSnap, hlSnap, cSnap]) => {
       const membres = Object.fromEntries(entries(mSnap.val()));
       const cfg = Object.assign({ taux_action_pct: 25, taux_cambriolage: 700, taux_pochon: 25, taux_branche: 10 }, cSnap.val() || {});
       const actions = entries(aSnap.val()).filter(([,a]) => a.resultat !== 'Échec');
@@ -205,8 +217,11 @@
       const labos = entries(lSnap.val()).filter(([,l]) => l.resultat !== 'Échec');
       const fleecas = entries(flSnap.val()).filter(([,r]) => r.resultat !== 'Échec');
       const armureries = entries(arSnap.val()).filter(([,r]) => r.resultat !== 'Échec');
+      const bijouteries = entries(biSnap.val()).filter(([,r]) => r.resultat !== 'Échec');
+      const pacifics = entries(paSnap.val()).filter(([,r]) => r.resultat !== 'Échec');
+      const humanlabs = entries(hlSnap.val()).filter(([,r]) => r.resultat !== 'Échec');
 
-      dernieresListes = { membres, cfg, actions, gofasts, ventes, labos, fleecas, armureries };
+      dernieresListes = { membres, cfg, actions, gofasts, ventes, labos, fleecas, armureries, bijouteries, pacifics, humanlabs };
       chargerSemaines().then(renderTout);
 
     });
@@ -218,35 +233,34 @@
       `;
     });
 
-    // ---- Cooldown Fleeca / Armurerie : 2 par semaine glissante, chaque braquage se libère 7 jours après sa date ----
+    // ---- Cooldown des braquages : limites de l'Organisation par semaine glissante, chaque braquage se libère 7 jours après sa date ----
     const COOLDOWN_MS = 7 * 86400000;
-    const MAX_PAR_SEMAINE = 2;
-    const datesBraquages = { fleecas: [], armureries: [] };
-    ['fleecas', 'armureries'].forEach(noeud => {
-      db.ref(noeud).on('value', snap => {
-        datesBraquages[noeud] = entries(snap.val()).map(([, r]) => r.date ? new Date(r.date).getTime() : 0).filter(Boolean).sort((x, y) => x - y);
+    const datesBraquages = {};
+    LIMITES_BRAQUAGES.forEach(l => {
+      datesBraquages[l.node] = [];
+      db.ref(l.node).on('value', snap => {
+        datesBraquages[l.node] = entries(snap.val()).map(([, r]) => r.date ? new Date(r.date).getTime() : 0).filter(Boolean).sort((x, y) => x - y);
         renderCooldown();
       });
     });
     function renderCooldown() {
-      const lignes = [['🏦 Fleeca', 'fleecas'], ['🔫 Armurerie', 'armureries']];
       const now = Date.now();
-      document.getElementById('cooldown-body').innerHTML = lignes.map(([label, noeud]) => {
-        const actifs = datesBraquages[noeud].filter(t => t + COOLDOWN_MS > now); // braquages encore "comptés" (< 7 jours)
-        const libres = Math.max(0, MAX_PAR_SEMAINE - actifs.length);
+      document.getElementById('cooldown-body').innerHTML = LIMITES_BRAQUAGES.map(l => {
+        const actifs = datesBraquages[l.node].filter(t => t + COOLDOWN_MS > now); // braquages encore "comptés" (< 7 jours)
+        const libres = Math.max(0, l.max - actifs.length);
         const fmtReste = diff => {
           const j = Math.floor(diff / 86400000), h = Math.floor((diff % 86400000) / 3600000), m = Math.floor((diff % 3600000) / 60000);
           return `${j}j ${String(h).padStart(2, '0')}h ${String(m).padStart(2, '0')}m`;
         };
         const statut = libres > 0
-          ? `<span style="color:var(--gold);">✅ ${libres}/${MAX_PAR_SEMAINE} disponible${libres > 1 ? 's' : ''}</span>`
-          : `<span style="color:var(--danger);">⏳ Prochain dans ${fmtReste(actifs[actifs.length - MAX_PAR_SEMAINE] + COOLDOWN_MS - now)}</span>`;
-        const liberations = actifs.length
-          ? actifs.map(t => `${fmtDateHeure(new Date(t + COOLDOWN_MS).toISOString())} <span style="color:var(--muted);">(${fmtReste(t + COOLDOWN_MS - now)})</span>`).join('<br>')
-          : '—';
-        return `<tr><td>${label}</td><td>${statut}</td><td style="font-size:12px;">${liberations}</td></tr>`;
+          ? `<span style="color:var(--gold);">✅ ${libres}/${l.max} disponible${libres > 1 ? 's' : ''}</span>`
+          : `<span style="color:var(--danger);">⏳ Prochain dans ${fmtReste(actifs[actifs.length - l.max] + COOLDOWN_MS - now)}</span>`;
+        const prochains = actifs.slice(0, 3).map(t => `${fmtDateHeure(new Date(t + COOLDOWN_MS).toISOString())} <span style="color:var(--muted);">(${fmtReste(t + COOLDOWN_MS - now)})</span>`).join('<br>')
+          + (actifs.length > 3 ? `<br><span style="color:var(--muted);">+ ${actifs.length - 3} autres</span>` : '');
+        return `<tr><td>${l.label}</td><td>${statut}</td><td style="font-size:12px;">${actifs.length ? prochains : '—'}</td></tr>`;
       }).join('');
     }
+    renderCooldown();
     setInterval(renderCooldown, 30000);
 
   }

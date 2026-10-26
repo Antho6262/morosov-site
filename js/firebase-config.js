@@ -36,6 +36,15 @@ function gradeInfo(id) {
   return GRADES_DEFAUT.find(g => g.id === id) || GRADES_DEFAUT[GRADES_DEFAUT.length - 1];
 }
 
+// Limites de braquages d'une Organisation (règlement du serveur), par semaine glissante de 7 jours
+const LIMITES_BRAQUAGES = [
+  { node: 'fleecas',     label: '🏦 Banque (Fleeca)', max: 12 },
+  { node: 'bijouteries', label: '💎 Bijouterie',       max: 4 },
+  { node: 'armureries',  label: '🔫 Armurerie',        max: 12 },
+  { node: 'pacifics',    label: '🏛️ Pacific Bank',     max: 2 },
+  { node: 'humanlabs',   label: '🧬 Human Labs',       max: 1 },
+];
+
 // Neige qui tombe en fond (canvas léger, coupée si l'utilisateur réduit les animations)
 function startSnow() {
   try {

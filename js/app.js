@@ -178,13 +178,16 @@ async function ensureActiveWeek() {
 
 // Calcule le solde d'argent sale / propre depuis toutes les sources Firebase
 async function computeSoldes() {
-  const [aSnap, gSnap, vSnap, lSnap, flSnap, arSnap, txSnap, taxSnap, cSnap, argSaleSnap, argPropreSnap, blanchSnap, payeSnap] = await Promise.all([
+  const [aSnap, gSnap, vSnap, lSnap, flSnap, arSnap, biSnap, paSnap, hlSnap, txSnap, taxSnap, cSnap, argSaleSnap, argPropreSnap, blanchSnap, payeSnap] = await Promise.all([
     db.ref('actions').get(),
     db.ref('cambriolages').get(),
     db.ref('ventes').get(),
     db.ref('labos').get(),
     db.ref('fleecas').get(),
     db.ref('armureries').get(),
+    db.ref('bijouteries').get(),
+    db.ref('pacifics').get(),
+    db.ref('humanlabs').get(),
     db.ref('transactions').get(),
     db.ref('taxes').get(),
     db.ref('config').get(),
@@ -229,6 +232,9 @@ async function computeSoldes() {
   entries(arSnap.val()).filter(([id, r]) => r.resultat !== 'Échec').forEach(([id, r]) => {
     solde_sale += r.montant || 0;
   });
+  [biSnap, paSnap, hlSnap].forEach(snap => entries(snap.val()).filter(([id, r]) => r.resultat !== 'Échec').forEach(([id, r]) => {
+    solde_sale += r.montant || 0;
+  }));
 
   // Transactions : une vente fait rentrer l'argent du groupe, un achat en fait sortir
   entries(txSnap.val()).forEach(([id, t]) => {

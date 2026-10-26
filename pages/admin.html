@@ -335,7 +335,8 @@
     // ---- types d'action ----
     const TYPES_DEFAUT = [
       { emoji: '🏧', nom: 'ATM' }, { emoji: '🏠', nom: 'Cambu' }, { emoji: '📦', nom: 'Conteneur' },
-      { emoji: '🏪', nom: 'Supérette' }, { emoji: '⛽', nom: 'LTD' }, { emoji: '🚗', nom: 'Go Fast' }
+      { emoji: '🏪', nom: 'Supérette' }, { emoji: '⛽', nom: 'LTD' }, { emoji: '🚗', nom: 'Go Fast' },
+      { emoji: '🚚', nom: 'Convoi de fonds' }, { emoji: '📥', nom: 'Convoi de saisie' }, { emoji: '🧪', nom: 'Scène labo' }
     ];
     let typesActionActuels = null;
     db.ref('config/types_action').on('value', snap => {
